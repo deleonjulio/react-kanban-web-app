@@ -1,3 +1,4 @@
+import { UpdateCardPayload } from "../types";
 import { POST, DELETE, GET, PUT } from "../utils/request"
 
 export const createBoard = (payload: { name: string; }) => {
@@ -50,4 +51,8 @@ export const getCard = (cardId?: string) => {
 
 export const deleteCard = ({ columnId, cardId } : { columnId?: string, cardId?: string}) => {
   return DELETE(`/column/${columnId}/card/${cardId}`);
+}
+
+export const updateCard = ({payload, onSuccess}: {payload: UpdateCardPayload, onSuccess: () => void; }) => {
+  return PUT(`/card/${payload?._id}`, { ...payload })
 }

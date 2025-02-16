@@ -4,11 +4,11 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-p
 import { Paper, Text } from "@mantine/core";
 import { notifications } from '@mantine/notifications';
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard } from "../../apis";
+import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard, updateCard } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
 import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader } from "./components";
-import type { Board, Card, SelectedCard } from "../../types";
+import type { Board, Card, SelectedCard, UpdateCardPayload } from "../../types";
 import { styles } from "./style";
 
 export const BoardPage = () => { 
@@ -40,7 +40,7 @@ export const BoardPage = () => {
   })
 
   const { data: initialSelectedCard } = useQuery({
-    queryKey: [selectedCard?._id],
+    queryKey: [selectedCard?._id, selectedCard?.title, selectedCard?.content, selectedCard?.formatted_content],
     queryFn: () => getCard(selectedCard?._id),
     enabled: selectedCard?._id !== undefined,
     retry: false,
@@ -251,6 +251,45 @@ export const BoardPage = () => {
     closeDeleteCardModal();
   }
 
+  const handleUpdateCard = ({payload, onSuccess}: {payload: UpdateCardPayload, onSuccess: () => void; }) => {
+    updateCardMutate({payload, onSuccess})
+  }
+
+  const { mutate: updateCardMutate, isPending: updateCardIsPending } = useMutation({
+    mutationFn: updateCard,
+    onSuccess: (_, variable) => {
+      const updatedCard = variable.payload;
+      let updatedColumns = { ...columns }
+      if(updatedCard.column_id) {
+          updatedColumns[updatedCard.column_id] = {
+              ...updatedColumns[updatedCard.column_id],
+              items: updatedColumns[updatedCard.column_id]?.items.map((card) => {
+                if(card._id === updatedCard._id) {
+                  return {
+                    ...card,
+                    title: updatedCard.title ?? '',
+                    content: updatedCard.content,
+                    formatted_content: updatedCard.formatted_content,
+                  }
+                }
+                return {...card}
+              })
+          }
+
+          setSelectedCard((prev) => ({
+            ...prev,
+            ...variable.payload
+          }))
+          
+          setColumns(updatedColumns);
+      }
+      variable.onSuccess()
+    },
+    onError: (error) => {   
+      console.log("Error updating card", error);
+    }
+  });
+
   return (
     <div style={styles.containerStyle as React.CSSProperties}>
       <DragDropContext onDragEnd={onDragEnd}>
@@ -327,14 +366,16 @@ export const BoardPage = () => {
         selectedCard={selectedCard} 
         boardName={BOARD_NAME} 
         initDeleteCard={initDeleteCard} 
-    />
-    <DeleteCardModal 
+        handleUpdateCard={handleUpdateCard}
+        updateCardIsPending={updateCardIsPending}
+      />
+      <DeleteCardModal 
         opened={deleteCardModalOpened}
         close={handleCloseDeleteCardModal}
         selectedCard={selectedCard}
         handleDeleteCard={handleDeleteCard}
         deleteCardIsPending={deleteCardIsPending}
-    />
+      />
     </div>
   );
 };

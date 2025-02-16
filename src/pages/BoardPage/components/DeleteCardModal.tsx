@@ -25,7 +25,7 @@ export const DeleteCardModal = ({
                     Deleting a card removes it permanently from the project.
                 </Text>
                 <Group justify="flex-end">
-                    <Button variant="default" disabled={deleteCardIsPending}>Cancel</Button>
+                    <Button variant="default" onClick={close} disabled={deleteCardIsPending}>Cancel</Button>
                     <Button variant="outline" color="red" onClick={() => handleDeleteCard({columnId: card?.column_id, cardId: card?._id})} disabled={deleteCardIsPending} loading={deleteCardIsPending}>Delete</Button>
                 </Group>
             </SimpleGrid>

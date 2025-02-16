@@ -1,0 +1,28 @@
+.ProseMirror {
+    height: 40vh;
+    padding: 8px;
+    border: 1px solid lightgray;
+    border-radius: 4px;
+    overflow: auto;
+    line-height: 1.40;
+    font-size: 15px;
+}
+
+.ProseMirrorView {
+    height: auto;
+    border: 0;
+}
+
+.ProseMirror p {
+    margin: 0;
+}
+
+.ProseMirror:focus {
+    outline: none;
+}
+
+.tiptap {
+    :first-child {
+        margin-top: 0;
+    }
+}

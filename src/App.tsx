@@ -6,6 +6,7 @@ import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import Root from './routes/AppRoutes';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
+import './App.css';
 
 const queryClient = new QueryClient()
 

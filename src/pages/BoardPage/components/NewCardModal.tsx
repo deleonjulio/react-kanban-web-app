@@ -15,7 +15,6 @@ export const NewCardModal = ({
     createCardIsPending: boolean; 
   }) => {
   
-  
     const onSubmit = (values: { title: string; }) => {  
       createCardMutate({columnId: startingColumn, ...values})
     }

@@ -15,10 +15,19 @@ type Card = {
 
 type SelectedCard = Card & {
     content?: string
+    formatted_content?: string;
     created_by?: {
         name?: string;
     }
     date_created?: string;
 }
 
-export type { Board, Column, Card, SelectedCard}
+type UpdateCardPayload = {
+    _id?: string;
+    column_id?: string;
+    title?: string;
+    content?: string;
+    formatted_content?: string;
+}
+
+export type { Board, Column, Card, SelectedCard, UpdateCardPayload }
