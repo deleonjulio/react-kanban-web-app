@@ -1,34 +1,54 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-export const useTableFetch = ({endpoint = null, queryKey}: {endpoint: any, queryKey?: string}) => {
-    const [tableConfig, setTableConfig] = useState({
-        currentPage: 1,
-        rowSize: 5,
-        // rows: new Array(70).fill(1).map((_, index) => index + 1)
-    })
+interface TableFetchProps {
+  endpoint: (query: string) => Promise<any>;
+  queryKey?: string;
+  queryParams?: Record<string, any>; // Accept an object for dynamic query params
+  enabled: boolean
+}
 
-    const changeRowSize = (rowSize = 5) => setTableConfig((prev) => ({
+export const useTableFetch = ({ endpoint, queryKey, queryParams = {}, enabled = true }: TableFetchProps) => {
+  const [tableConfig, setTableConfig] = useState({
+    currentPage: 1,
+    rowSize: 5,
+  });
+
+  // Convert queryParams object to a query string
+  const buildQueryString = (params: Record<string, any>) =>
+    Object.entries(params)
+      .map(([key, value]) => `${key}=${value}`)
+      .join("&");
+
+  const changeRowSize = (rowSize = 5) =>
+    setTableConfig((prev) => ({
       ...prev,
       currentPage: 1,
-      rowSize
-    }))
-    const {
-        data,
-        refetch,
-        isRefetching,
-      } = useQuery({
-        queryKey: [queryKey, tableConfig],
-        // &search=${tableConfig.search}${tableConfig.filter}
-        queryFn: () => endpoint(`?page=${tableConfig.currentPage}&limit=${tableConfig.rowSize}`),
-        // staleTime: 0,
-        // cacheTime: 0,
-        refetchOnWindowFocus: false,
-        retry: false,
-      })
+      rowSize,
+    }));
 
-    const pageCount = Math.ceil(data?.data?.total / tableConfig?.rowSize)
+  const queryString = buildQueryString(queryParams);
 
-    return { data: data?.data?.data || [], total: data?.data?.total, fetch: refetch, isLoading: isRefetching, tableConfig, setTableConfig, pageCount, changeRowSize }
-}
+  const { data, refetch, isPending, isRefetching } = useQuery({
+    queryKey: [queryKey, tableConfig, queryString],
+    queryFn: () =>
+      endpoint(`?page=${tableConfig.currentPage}&limit=${tableConfig.rowSize}&${queryString}`),
+    refetchOnWindowFocus: false,
+    retry: false,
+    enabled: enabled
+  });
+
+  const pageCount = Math.ceil(data?.data?.total / tableConfig.rowSize);
+
+  return {
+    data: data?.data?.data || [],
+    total: data?.data?.total,
+    fetch: refetch,
+    isLoading: isPending || isRefetching,
+    tableConfig,
+    setTableConfig,
+    pageCount,
+    changeRowSize,
+  };
+};

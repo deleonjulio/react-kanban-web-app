@@ -56,3 +56,7 @@ export const deleteCard = ({ columnId, cardId } : { columnId?: string, cardId?: 
 export const updateCard = ({payload, onSuccess}: {payload: UpdateCardPayload, onSuccess: () => void; }) => {
   return PUT(`/card/${payload?._id}`, { ...payload })
 }
+
+export const getCardActivities = (query: string) => {
+  return GET(`/activity/card${query}`)
+}

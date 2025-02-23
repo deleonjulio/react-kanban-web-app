@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { Paper, Text } from "@mantine/core";
+import { Avatar, Group, Paper, Text } from "@mantine/core";
 import { notifications } from '@mantine/notifications';
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard, updateCard } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
-import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader } from "./components";
+import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader, PriorityBadge } from "./components";
 import type { Board, Card, SelectedCard, UpdateCardPayload } from "../../types";
 import { styles } from "./style";
+import dayjs from "dayjs";
+
+const CURRENT_DATE = dayjs();
 
 export const BoardPage = () => { 
   const { id: boardId } = useParams();
@@ -27,7 +30,8 @@ export const BoardPage = () => {
   const { data } = useQuery({
     queryKey: [boardId],
     queryFn: () => getBoard(boardId),
-    enabled: boardId != undefined
+    enabled: boardId != undefined,
+    refetchOnWindowFocus: false
   })
   
   const BOARD_NAME = data?.data?.name
@@ -36,7 +40,8 @@ export const BoardPage = () => {
     queryKey: ['cards'],
     queryFn: () => getCards(boardId),
     enabled: columnList.length > 0,
-    retry: false
+    retry: false,
+    refetchOnWindowFocus: false
   })
 
   const { data: initialSelectedCard } = useQuery({
@@ -270,16 +275,18 @@ export const BoardPage = () => {
                     title: updatedCard.title ?? '',
                     content: updatedCard.content,
                     formatted_content: updatedCard.formatted_content,
+                    priority: updatedCard.priority,
+                    due_date: updatedCard.due_date
                   }
                 }
                 return {...card}
               })
           }
 
-          setSelectedCard((prev) => ({
+          setSelectedCard((prev) => prev ? ({
             ...prev,
             ...variable.payload
-          }))
+          }) : prev)
           
           setColumns(updatedColumns);
       }
@@ -329,19 +336,27 @@ export const BoardPage = () => {
                               >
                                 {(provided) => (
                                   <Paper
+                                    bd="0.5px gray solid"
                                     onClick={() => handleSelectCard(item)}
                                     shadow="sm" radius="md" withBorder
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
                                     style={{
-                                      ...styles.itemStyle,
+                                      ...(item?.priority ? styles.itemWithPriorityStyle: styles.itemStyle),
                                       ...provided.draggableProps.style,
                                     }}
                                   >
+                                    <PriorityBadge priority={item?.priority} size="xs" />
                                     <Text size="sm">
                                       {item.title}
                                     </Text>
+                                    <Group gap="xs" justify="space-between">
+                                      <Text size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>
+                                        {item.due_date && dayjs(item.due_date).format('MMM. DD YYYY')}
+                                      </Text>
+                                      <Avatar size="sm" name="JULIO" color="initials" />
+                                    </Group>
                                   </Paper>
                                 )}
                               </Draggable>

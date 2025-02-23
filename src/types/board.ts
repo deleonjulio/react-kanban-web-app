@@ -1,3 +1,5 @@
+import { DateValue } from "@mantine/dates";
+
 type Board = { 
     [key: string]: Column
 }
@@ -11,11 +13,15 @@ type Card = {
     _id: string;
     title: string;
     column_id: string;
+    priority?: string | null;
+    due_date?: DateValue | null;
 }
 
 type SelectedCard = Card & {
     content?: string
     formatted_content?: string;
+    priority?: string | null;
+    due_date?: DateValue | null;
     created_by?: {
         name?: string;
     }
@@ -28,6 +34,8 @@ type UpdateCardPayload = {
     title?: string;
     content?: string;
     formatted_content?: string;
+    priority?: string | null;
+    due_date?: DateValue | null;
 }
 
 export type { Board, Column, Card, SelectedCard, UpdateCardPayload }

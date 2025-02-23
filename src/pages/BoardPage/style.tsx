@@ -46,6 +46,12 @@ export const styles = {
       // minHeight: "80px",
       // maxHeight: "100px",
       // overflow: "hidden",
+    },
+    itemWithPriorityStyle: {
+      padding: "2px 8px 8px 8px",
+      backgroundColor: "white",
+      borderRadius: "4px",
+      cursor: "grab",
     }
   }
   
