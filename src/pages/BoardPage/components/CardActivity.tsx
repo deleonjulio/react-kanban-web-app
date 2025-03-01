@@ -1,4 +1,4 @@
-import { Avatar, Center, Grid, Group, Pagination, Paper, Table, Text, Box, LoadingOverlay } from '@mantine/core';
+import { Avatar, Center, Grid, Group, Pagination, Paper, Table, Text, Box, LoadingOverlay, Loader } from '@mantine/core';
 import dayjs from 'dayjs';
 import { useTableFetch } from '../../../hooks';
 import { getCardActivities } from '../../../apis';
@@ -11,10 +11,6 @@ type Activity = {
   date_created: string;
   action_type: string;
 }
-
-const InitialCardForLoading = () => (
-  <div style={{height: 100}} />
-)
 
 const ActionDetails = ({actionType}: {actionType?: string}) => {
   if(actionType === 'create_issue') {
@@ -115,21 +111,19 @@ export const CardActivity = ({cardId}: {cardId?: string}) => {
             </Center>
           </Grid.Col>
           <Grid.Col>
-          <Box pos="relative">
-            <LoadingOverlay visible={isLoading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
-              <Table horizontalSpacing={0} withRowBorders={false}>
+            <Center>
+              {isLoading && <Box p="xl"><Loader size={50} /></Box>}
+              {(!isLoading && rows.length === 0) && <Box p="xl"><Text c="gray.6">No activity found</Text></Box>}
+              {(!isLoading && rows.length > 0) && (<Table horizontalSpacing={0} withRowBorders={false}>
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th w={60}></Table.Th>
                     <Table.Th></Table.Th>
                   </Table.Tr>
                 </Table.Thead>
-                {rows?.length > 0 
-                  ? (<Table.Tbody>{rows}</Table.Tbody>) 
-                  : (<InitialCardForLoading />)
-                }
-              </Table>
-            </Box>
+                <Table.Tbody>{rows}</Table.Tbody>
+              </Table>) }
+            </Center>
           </Grid.Col>
           <Grid.Col pt={8}>
             <Center>

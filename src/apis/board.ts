@@ -60,3 +60,7 @@ export const getCards = (boardId?: string) => {
 export const getCardActivities = (query: string) => {
   return GET(`/activity/card${query}`)
 }
+
+export const deleteColumn = ({boardId, columnId}: { boardId: string; columnId: string; }) => {
+  return DELETE(`/boards/${boardId}/columns/${columnId}`);
+}

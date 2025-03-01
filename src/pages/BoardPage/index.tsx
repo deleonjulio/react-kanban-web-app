@@ -4,11 +4,11 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-p
 import { Avatar, Group, Paper, Text } from "@mantine/core";
 import { notifications } from '@mantine/notifications';
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard, updateCard } from "../../apis";
+import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard, updateCard, deleteColumn } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
 import dayjs from "dayjs";
-import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader, PriorityBadge, BoardNotFound } from "./components";
+import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader, PriorityBadge, BoardNotFound, DeleteColumnModal } from "./components";
 import { Head } from "../../components";
 import type { Board, Card, SelectedCard, UpdateCardPayload } from "../../types";
 import { styles } from "./style";
@@ -23,11 +23,11 @@ export const BoardPage = () => {
   const [opened, { open, close }] = useDisclosure(false);
   const [cardModalOpened, { open: openCardModal, close: closeCardModal }] = useDisclosure(false);
   const [deleteCardModalOpened, { open: openDeleteCardModal, close: closeDeleteCardModal }] = useDisclosure(false);
+  const [deleteColumnModalOpened, { open: openDeleteColumnModal, close: closeDeleteColumnModal }] = useDisclosure(false);
   const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null)
+  const [columnToBeDeleted, setColumnToBeDeleted] = useState<string | null>(null);
 
   const [columns, setColumns] = useState<Board>({});
-
-  const [columnsCreateButton, setColumnsCreateButton] = useState<{ [key: string]: boolean }>({})
 
   const startingColumn = Object.keys(columns)[0];
   const columnList = Object.keys(columns);
@@ -74,15 +74,12 @@ export const BoardPage = () => {
       const { data: initialBoardData } = data;
       const boardData: Board = {};
 
-      const initialColumnsCreateButton: { [key: string]: boolean } = {};
-
       initialBoardData?.columns?.forEach((column: { _id: string; name: string; }) => {
         boardData[column._id] = {
           name: column.name,
           items: []
         }
 
-        initialColumnsCreateButton[column._id] = false
       })
 
       setColumns(boardData);      
@@ -177,7 +174,7 @@ export const BoardPage = () => {
             }
             setColumns(updatedColumns);
         }
-        handleCloseDeleteCardModal()
+        closeDeleteCardModal()
         handleCloseCardModal()
         notifications.show({
             title: 'Delete',
@@ -186,8 +183,9 @@ export const BoardPage = () => {
             color: "green"
         })
     },
-    onError: (error) => {   
+    onError: (error: AxiosError) => {   
       console.log("Error deleting card", error);
+      errorHandler(error)
     },
   });
 
@@ -197,6 +195,45 @@ export const BoardPage = () => {
     if (boardId && columnId && cardId) {
       deleteCardMutate({ boardId, columnId, cardId });
     }
+  }
+
+  const { mutate: deleteColumnMutate, isPending: deleteColumnIsPending } = useMutation({
+    mutationFn: deleteColumn,
+    onSuccess: (response, variable) => {
+      console.log(response);
+        let updatedColumns = { ...columns }
+        if(variable?.columnId) {
+            delete updatedColumns[variable?.columnId]
+            setColumns(updatedColumns);
+        }
+        handleCloseDeleteColumnModal()
+        notifications.show({
+            title: 'Delete',
+            message: 'Column deleted successfully.',
+            position: "top-right",
+            color: "green"
+        })
+    },
+    onError: (error: AxiosError) => {   
+      console.log("Error deleting column", error);
+      errorHandler(error)
+    },
+  });
+
+  const handleDeleteColumn = () => {
+    if(boardId && columnToBeDeleted) {
+      deleteColumnMutate({boardId, columnId: columnToBeDeleted})
+    }
+  }
+
+  const handleCloseDeleteColumnModal = () => {
+    setColumnToBeDeleted(null);
+    closeDeleteColumnModal()  
+  }
+
+  const initDeleteColumn = (columnId: string) => { 
+    setColumnToBeDeleted(columnId);
+    openDeleteColumnModal();
   }
 
   const onDragEnd = (result: DropResult) => {
@@ -275,10 +312,6 @@ export const BoardPage = () => {
     setSelectedCard(null);
   }
 
-  const handleCloseDeleteCardModal = () => {
-    closeDeleteCardModal();
-  }
-
   const handleUpdateCard = ({payload, onSuccess}: {payload: UpdateCardPayload, onSuccess: () => void; }) => {
     if (boardId && payload?.column_id && payload?._id) {
       updateCardMutate({boardId, columnId: payload.column_id, cardId: payload._id, payload, onSuccess});
@@ -342,9 +375,7 @@ export const BoardPage = () => {
               {Object.entries(columns).map(([columnId, column], index) => (
                 <Draggable key={columnId} draggableId={columnId} index={index}>
                   {(provided) => (
-                    <div
-                      onMouseEnter={() => setColumnsCreateButton((prev) => ({...prev, [columnId]: true}))}
-                      onMouseLeave={() => setColumnsCreateButton((prev) => ({...prev, [columnId]: false}))}
+                    <div 
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       style={{ ...styles.columnStyle as React.CSSProperties, ...provided.draggableProps.style }}
@@ -353,9 +384,8 @@ export const BoardPage = () => {
                         {...provided.dragHandleProps}
                         style={styles.columnHeaderStyle as React.CSSProperties}
                       >
-                        <ColumnHeader name={column.name} index={index} open={open} />
+                        <ColumnHeader name={column.name} open={open} initDeleteColumn={() => initDeleteColumn(columnId)} />
                       </div>
-                      {columnsCreateButton[columnId] && <Paper pt="xs" pb="xs" shadow="xs" mt="xs" mb="xs" style={{cursor: "pointer"}}>+ Create new card</Paper>}
                       <Droppable droppableId={columnId} type="ITEM">
                         {(provided) => (
                           <div
@@ -421,10 +451,16 @@ export const BoardPage = () => {
       />
       <DeleteCardModal 
         opened={deleteCardModalOpened}
-        close={handleCloseDeleteCardModal}
+        close={closeDeleteCardModal}
         selectedCard={selectedCard}
         handleDeleteCard={handleDeleteCard}
         deleteCardIsPending={deleteCardIsPending}
+      />
+      <DeleteColumnModal 
+        opened={deleteColumnModalOpened}
+        close={handleCloseDeleteColumnModal}
+        handleDeleteColumn={handleDeleteColumn}
+        deleteColumnIsPending={deleteColumnIsPending}
       />
     </div>
   );
