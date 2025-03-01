@@ -52,7 +52,7 @@ type UserAuthentication = {
 export const Home = () => {
   const user = useLoaderData() as UserAuthentication;
   const navigate = useNavigate()
-  const { data, fetch, isLoading, pageCount, setTableConfig } = useTableFetch({endpoint: fetchBoard})
+  const { data, fetch, isLoading, pageCount, setTableConfig, tableConfig } = useTableFetch({endpoint: fetchBoard})
   const handleTableChange = (pageNumber: number) => setTableConfig((prev) => ({...prev, currentPage: pageNumber}))
 
   const { mutate: deleteBoardMutate, isPending: deleteBoardIsPending } = useMutation({
@@ -98,7 +98,7 @@ export const Home = () => {
       onSuccess: (response) => {
           form.reset()
           close()
-          navigate(`/board/${response?.data.id}`)
+          navigate(`/boards/${response?.data.id}`)
       }, onError: (error: AxiosError) => {
           errorHandler(error);
       },
@@ -205,7 +205,7 @@ export const Home = () => {
                 </form>
             </Modal>
           <div className="flex justify-center pt-2">
-           {rows.length > 0 && <Pagination color="cyan" disabled={isLoading} total={pageCount} onChange={handleTableChange} size="lg" />}
+           {rows.length > 0 && <Pagination color="cyan" value={tableConfig.currentPage} disabled={isLoading} total={pageCount} onChange={handleTableChange} size="lg" />}
           </div>
         </div>
       </div>

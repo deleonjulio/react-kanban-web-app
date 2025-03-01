@@ -14,7 +14,8 @@ export const errorHandler = (error: AxiosError) => {
       notifications.show({
         color: "red",
         position:'top-right',
-        message: error.message,
+        title: error.message,
+        message: error?.response?.data?.message
       })
     } else {
       notifications.show({

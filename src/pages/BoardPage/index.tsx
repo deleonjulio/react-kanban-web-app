@@ -8,10 +8,12 @@ import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardL
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
 import dayjs from "dayjs";
-import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader, PriorityBadge } from "./components";
+import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader, PriorityBadge, BoardNotFound } from "./components";
 import { Head } from "../../components";
 import type { Board, Card, SelectedCard, UpdateCardPayload } from "../../types";
 import { styles } from "./style";
+import { errorHandler } from "../../utils/helper";
+import { AxiosError } from "axios";
 
 const CURRENT_DATE = dayjs();
 
@@ -25,13 +27,16 @@ export const BoardPage = () => {
 
   const [columns, setColumns] = useState<Board>({});
 
+  const [columnsCreateButton, setColumnsCreateButton] = useState<{ [key: string]: boolean }>({})
+
   const startingColumn = Object.keys(columns)[0];
   const columnList = Object.keys(columns);
 
-  const { data } = useQuery({
+  const { data, error: errorGetBoard } = useQuery({
     queryKey: [boardId],
     queryFn: () => getBoard(boardId),
     enabled: boardId != undefined,
+    retry: false,
     refetchOnWindowFocus: false
   })
   
@@ -56,7 +61,7 @@ export const BoardPage = () => {
     retry: false,
     refetchOnWindowFocus: false
   })
-  console.log(selectedCard)
+
   useEffect(() => {
     if(initialSelectedCard?.data) {
       setSelectedCard(initialSelectedCard.data)
@@ -69,14 +74,18 @@ export const BoardPage = () => {
       const { data: initialBoardData } = data;
       const boardData: Board = {};
 
+      const initialColumnsCreateButton: { [key: string]: boolean } = {};
+
       initialBoardData?.columns?.forEach((column: { _id: string; name: string; }) => {
         boardData[column._id] = {
           name: column.name,
           items: []
         }
+
+        initialColumnsCreateButton[column._id] = false
       })
 
-      setColumns(boardData);
+      setColumns(boardData);      
     }
   }, [data])
 
@@ -145,8 +154,9 @@ export const BoardPage = () => {
       };
       setColumns(updatedColumns);
     },
-    onError: (error) => {   
-      console.log("Error updating column order", error);
+    onError: (error: AxiosError) => {   
+      console.log("Error creating card", error);
+      errorHandler(error)
     }
   });
 
@@ -312,6 +322,12 @@ export const BoardPage = () => {
     }
   });
 
+  if(errorGetBoard) {
+    return (
+      <BoardNotFound />
+    )
+  }
+
   return (
     <div style={styles.containerStyle as React.CSSProperties}>
       <Head title={BOARD_NAME} />
@@ -327,6 +343,8 @@ export const BoardPage = () => {
                 <Draggable key={columnId} draggableId={columnId} index={index}>
                   {(provided) => (
                     <div
+                      onMouseEnter={() => setColumnsCreateButton((prev) => ({...prev, [columnId]: true}))}
+                      onMouseLeave={() => setColumnsCreateButton((prev) => ({...prev, [columnId]: false}))}
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       style={{ ...styles.columnStyle as React.CSSProperties, ...provided.draggableProps.style }}
@@ -337,6 +355,7 @@ export const BoardPage = () => {
                       >
                         <ColumnHeader name={column.name} index={index} open={open} />
                       </div>
+                      {columnsCreateButton[columnId] && <Paper pt="xs" pb="xs" shadow="xs" mt="xs" mb="xs" style={{cursor: "pointer"}}>+ Create new card</Paper>}
                       <Droppable droppableId={columnId} type="ITEM">
                         {(provided) => (
                           <div
@@ -410,4 +429,3 @@ export const BoardPage = () => {
     </div>
   );
 };
-
