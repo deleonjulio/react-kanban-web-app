@@ -1,22 +1,20 @@
 import { Modal, TextInput, Group, Button } from "@mantine/core";
 export const NewCardModal = ({
-    form,
-    startingColumn, 
+    form, 
     opened, 
     close, 
     handleCreateCard, 
     createCardIsPending
   }: { 
     form: any;
-    startingColumn: string; 
     opened: boolean; 
     close: () => void; 
-    handleCreateCard: ({columnId, title}: { columnId: string; title: string}) => void; 
+    handleCreateCard: ({ title }: { title: string; }) => void; 
     createCardIsPending: boolean; 
   }) => {
   
-    const onSubmit = ({title}: { title: string; }) => {  
-      handleCreateCard({columnId: startingColumn, title})
+    const onSubmit = ({ title }: { title: string; }) => {  
+      handleCreateCard({ title })
     }
   
     return (

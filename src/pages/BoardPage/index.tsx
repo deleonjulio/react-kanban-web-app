@@ -20,16 +20,16 @@ const CURRENT_DATE = dayjs();
 export const BoardPage = () => { 
   const { id: boardId } = useParams();
 
-  const [opened, { open, close }] = useDisclosure(false);
+  const [createCardModalOpened, { open: openCreateCardModal, close: closeCreateCardModal }] = useDisclosure(false);
   const [cardModalOpened, { open: openCardModal, close: closeCardModal }] = useDisclosure(false);
   const [deleteCardModalOpened, { open: openDeleteCardModal, close: closeDeleteCardModal }] = useDisclosure(false);
   const [deleteColumnModalOpened, { open: openDeleteColumnModal, close: closeDeleteColumnModal }] = useDisclosure(false);
   const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null)
   const [columnToBeDeleted, setColumnToBeDeleted] = useState<string | null>(null);
+  const [cardCreationColumnId, setCardCreationColumnId] = useState<string | null>(null)
 
   const [columns, setColumns] = useState<Board>({});
 
-  const startingColumn = Object.keys(columns)[0];
   const columnList = Object.keys(columns);
 
   const { data, error: errorGetBoard } = useQuery({
@@ -110,9 +110,10 @@ export const BoardPage = () => {
     }
   });
 
-  const onCancel = () => {
+  const handleCloseCreateCardModal = () => {
     form.reset();
-    close()
+    closeCreateCardModal()
+    setCardCreationColumnId(null)
   }
 
   const { mutate: updateColumnOrderMutate} = useMutation({
@@ -137,7 +138,7 @@ export const BoardPage = () => {
   const { mutate: createCardMutate, isPending: createCardIsPending } = useMutation({
     mutationFn: createCard,
     onSuccess: (response, variable) => {
-      onCancel();
+      handleCloseCreateCardModal();
       const updatedColumns = { 
         ...columns, 
         [variable.columnId]: {
@@ -157,9 +158,9 @@ export const BoardPage = () => {
     }
   });
 
-  const handleCreateCard = ({columnId, title}: { columnId: string; title: string}) => {
-    if (boardId) {
-      createCardMutate({ boardId, columnId, title });
+  const handleCreateCard = ({title}: {title: string}) => {
+    if (boardId && cardCreationColumnId) {
+      createCardMutate({ boardId, columnId: cardCreationColumnId, title });
     }
   }
 
@@ -188,6 +189,11 @@ export const BoardPage = () => {
       errorHandler(error)
     },
   });
+
+  const initCreateCard = (columnId: string) => {
+    setCardCreationColumnId(columnId)
+    openCreateCardModal()
+  }
 
   const initDeleteCard = () => openDeleteCardModal();
   
@@ -384,7 +390,7 @@ export const BoardPage = () => {
                         {...provided.dragHandleProps}
                         style={styles.columnHeaderStyle as React.CSSProperties}
                       >
-                        <ColumnHeader name={column.name} open={open} initDeleteColumn={() => initDeleteColumn(columnId)} />
+                        <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(columnId)} initDeleteColumn={() => initDeleteColumn(columnId)} />
                       </div>
                       <Droppable droppableId={columnId} type="ITEM">
                         {(provided) => (
@@ -418,7 +424,7 @@ export const BoardPage = () => {
                                     </Text>
                                     <Group gap="xs" justify="space-between">
                                       <Text size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>
-                                        {item.due_date && dayjs(item.due_date).format('MMM. DD YYYY')}
+                                        {item.due_date && dayjs(item.due_date).format('MMM. DD, YYYY')}
                                       </Text>
                                       <Avatar size="sm" name="JULIO" color="initials" />
                                     </Group>
@@ -439,7 +445,7 @@ export const BoardPage = () => {
           )}
         </Droppable>
       </DragDropContext>
-      <NewCardModal form={form} startingColumn={startingColumn} opened={opened} close={onCancel} handleCreateCard={handleCreateCard} createCardIsPending={createCardIsPending} />
+      <NewCardModal form={form} opened={createCardModalOpened} close={handleCloseCreateCardModal} handleCreateCard={handleCreateCard} createCardIsPending={createCardIsPending} />
       <CardModal 
         opened={cardModalOpened} 
         close={handleCloseCardModal} 

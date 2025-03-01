@@ -2,7 +2,7 @@ import { ActionIcon } from "@mantine/core";
 import { Menu} from '@mantine/core';
 import { IconTrash, IconPlus, IconDots } from '@tabler/icons-react';
 
-export const ColumnHeader = ({ name, open, initDeleteColumn }: { name:string; open: () => void; initDeleteColumn: () => void; }) => {
+export const ColumnHeader = ({ name, initCreateCard, initDeleteColumn }: { name:string; initCreateCard: () => void; initDeleteColumn: () => void; }) => {
     return (
         <div style={{flex: 1, display: 'flex', justifyContent: 'space-between'}}>
             <span>{name}</span>
@@ -14,7 +14,7 @@ export const ColumnHeader = ({ name, open, initDeleteColumn }: { name:string; op
                 </Menu.Target>
 
                 <Menu.Dropdown>
-                    <Menu.Item leftSection={<IconPlus size={14} />} onClick={open}>
+                    <Menu.Item leftSection={<IconPlus size={14} />} onClick={initCreateCard}>
                         Create new card
                     </Menu.Item>
                     <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={initDeleteColumn} >
