@@ -6,7 +6,7 @@ interface TableFetchProps {
   endpoint: (query: string) => Promise<any>;
   queryKey?: string;
   queryParams?: Record<string, any>; // Accept an object for dynamic query params
-  enabled: boolean
+  enabled?: boolean
 }
 
 export const useTableFetch = ({ endpoint, queryKey, queryParams = {}, enabled = true }: TableFetchProps) => {

@@ -1,17 +1,16 @@
 import { useMutation } from "@tanstack/react-query"
 import { AxiosError } from "axios"
-import { useNavigate } from "react-router-dom"
-// import { Label, Head } from "../../components"
+import { Navigate, useNavigate, useLoaderData } from "react-router-dom"
 import { createBoard, deleteBoard, fetchBoard } from "../../apis";
 import { useTableFetch } from "../../hooks";
 import { Table, Button, Menu, Text, Pagination, ActionIcon, Paper, Group, Modal, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
 import dayjs from "dayjs"
+import { Head } from "../../components";
 // import { EllipsisHorizontalIcon } from "@heroicons/react/24/outline"
 // import Logo from '../../assets/img1.svg?react'
 import { errorHandler } from "../../utils/helper"
-// import { QUIZ_STATUS } from "../../config"
 
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
@@ -45,7 +44,13 @@ const styles = {
     }
 }
 
+type UserAuthentication = {
+  authenticated: boolean
+  email: string
+}
+
 export const Home = () => {
+  const user = useLoaderData() as UserAuthentication;
   const navigate = useNavigate()
   const { data, fetch, isLoading, pageCount, setTableConfig } = useTableFetch({endpoint: fetchBoard})
   const handleTableChange = (pageNumber: number) => setTableConfig((prev) => ({...prev, currentPage: pageNumber}))
@@ -137,9 +142,13 @@ export const Home = () => {
     </Table.Tr>
   ));
 
+  if(!user.authenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
   return (
     <div style={styles.container}>
-      {/* <Head title="Quizzes"/> */}
+      <Head title="Boards"/>
       <div className="p-4">
         <div>
           <div className="flex justify-between">

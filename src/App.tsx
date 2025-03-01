@@ -1,3 +1,4 @@
+import { HelmetProvider } from 'react-helmet-async'
 import { MantineProvider } from '@mantine/core';
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
@@ -13,14 +14,16 @@ const queryClient = new QueryClient()
 
 const App = () => {
     return (
-        <QueryClientProvider client={queryClient}>
-            <MantineProvider>
-                <ModalsProvider>
-                    <Notifications />
-                    <RouterProvider router={Root} />
-                </ModalsProvider>
-            </MantineProvider>
-        </QueryClientProvider>
+        <HelmetProvider>
+            <QueryClientProvider client={queryClient}>
+                <MantineProvider>
+                    <ModalsProvider>
+                        <Notifications />
+                        <RouterProvider router={Root} />
+                    </ModalsProvider>
+                </MantineProvider>
+            </QueryClientProvider>
+        </HelmetProvider>
     );
 };
 

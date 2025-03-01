@@ -7,10 +7,11 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard, updateCard } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
+import dayjs from "dayjs";
 import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader, PriorityBadge } from "./components";
+import { Head } from "../../components";
 import type { Board, Card, SelectedCard, UpdateCardPayload } from "../../types";
 import { styles } from "./style";
-import dayjs from "dayjs";
 
 const CURRENT_DATE = dayjs();
 
@@ -299,6 +300,7 @@ export const BoardPage = () => {
 
   return (
     <div style={styles.containerStyle as React.CSSProperties}>
+      <Head title={BOARD_NAME} />
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="columns" direction="horizontal" type="COLUMN">
           {(provided) => (
@@ -336,7 +338,7 @@ export const BoardPage = () => {
                               >
                                 {(provided) => (
                                   <Paper
-                                    bd="0.5px gray solid"
+                                    // bd="0.5px gray solid"
                                     onClick={() => handleSelectCard(item)}
                                     shadow="sm" radius="md" withBorder
                                     ref={provided.innerRef}
