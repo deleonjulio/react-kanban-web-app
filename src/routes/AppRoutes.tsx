@@ -28,9 +28,10 @@ const routes = [{
     path: '/',
     errorElement: <>Page not found</>,
     children: [
-            { path: '',  element: <Home />, loader },
+            { path: '/',  element: <Home />, loader },
+            { path: '/boards',  element: <Home />, loader },
             { path: '/login',  element: <Login /> },
-            { path: 'board/:id', element: <BoardPage /> },
+            { path: '/boards/:id', element: <BoardPage /> },
         ]
     }
 ]

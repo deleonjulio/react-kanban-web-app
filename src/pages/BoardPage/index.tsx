@@ -47,12 +47,16 @@ export const BoardPage = () => {
 
   const { data: initialSelectedCard } = useQuery({
     queryKey: [selectedCard?._id, selectedCard?.title, selectedCard?.content, selectedCard?.formatted_content],
-    queryFn: () => getCard(selectedCard?._id),
-    enabled: selectedCard?._id !== undefined,
+    queryFn: () => {
+      if (boardId && selectedCard?.column_id && selectedCard?._id) {
+        return getCard({ boardId, columnId: selectedCard.column_id, cardId: selectedCard._id });
+      }
+    },
+    enabled: !!(boardId && selectedCard?.column_id && selectedCard?._id),
     retry: false,
     refetchOnWindowFocus: false
   })
-
+  console.log(selectedCard)
   useEffect(() => {
     if(initialSelectedCard?.data) {
       setSelectedCard(initialSelectedCard.data)
@@ -146,6 +150,12 @@ export const BoardPage = () => {
     }
   });
 
+  const handleCreateCard = ({columnId, title}: { columnId: string; title: string}) => {
+    if (boardId) {
+      createCardMutate({ boardId, columnId, title });
+    }
+  }
+
   const { mutate: deleteCardMutate, isPending: deleteCardIsPending } = useMutation({
     mutationFn: deleteCard,
     onSuccess: (_, variable) => {
@@ -174,7 +184,9 @@ export const BoardPage = () => {
   const initDeleteCard = () => openDeleteCardModal();
   
   const handleDeleteCard = ({columnId, cardId} : { columnId?: string, cardId?: string}) => {
-    deleteCardMutate({columnId, cardId})
+    if (boardId && columnId && cardId) {
+      deleteCardMutate({ boardId, columnId, cardId });
+    }
   }
 
   const onDragEnd = (result: DropResult) => {
@@ -258,7 +270,9 @@ export const BoardPage = () => {
   }
 
   const handleUpdateCard = ({payload, onSuccess}: {payload: UpdateCardPayload, onSuccess: () => void; }) => {
-    updateCardMutate({payload, onSuccess})
+    if (boardId && payload?.column_id && payload?._id) {
+      updateCardMutate({boardId, columnId: payload.column_id, cardId: payload._id, payload, onSuccess});
+    }
   }
 
   const { mutate: updateCardMutate, isPending: updateCardIsPending } = useMutation({
@@ -376,7 +390,7 @@ export const BoardPage = () => {
           )}
         </Droppable>
       </DragDropContext>
-      <NewCardModal form={form} startingColumn={startingColumn} opened={opened} close={onCancel} createCardMutate={createCardMutate} createCardIsPending={createCardIsPending} />
+      <NewCardModal form={form} startingColumn={startingColumn} opened={opened} close={onCancel} handleCreateCard={handleCreateCard} createCardIsPending={createCardIsPending} />
       <CardModal 
         opened={cardModalOpened} 
         close={handleCloseCardModal} 

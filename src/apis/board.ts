@@ -1,8 +1,12 @@
 import { UpdateCardPayload } from "../types";
-import { POST, DELETE, GET, PUT } from "../utils/request"
+import { POST, DELETE, GET, PUT, PATCH } from "../utils/request"
 
 export const createBoard = (payload: { name: string; }) => {
-  return POST('/board', payload);
+  return POST('/boards', payload);
+}
+
+export const getBoard = (boardId?: string) => {
+  return GET(`/boards/${boardId}`);
 }
 
 export const fetchBoard = (query: string) => {
@@ -11,10 +15,6 @@ export const fetchBoard = (query: string) => {
 
 export const deleteBoard = (boardId?: string) => {
   return DELETE(`/board/${boardId}`);
-}
-
-export const getBoard = (boardId?: string) => {
-  return GET(`/board/${boardId}`);
 }
 
 export const updateColumnOrder = ({ boardId, columnOrder }: { boardId?: string; columnOrder: string[]}) => {
@@ -37,24 +37,24 @@ export const updateCardLocation = ({
   return PUT(`/board/${boardId}/card/order/`, { sourceColumnId, destinationColumnId, destinationIndex, cardId });
 }
 
-export const createCard = (payload: { columnId: string; title: string; }) => {
-  return POST(`/column/${payload.columnId}`, payload);
+export const createCard = ({boardId, columnId, title}: { boardId: string; columnId: string; title: string; }) => {
+  return POST(`/boards/${boardId}/columns/${columnId}/cards`, { title });
+}
+
+export const getCard = ({boardId, columnId, cardId}: { boardId: string; columnId: string; cardId: string }) => {
+  return GET(`/boards/${boardId}/columns/${columnId}/cards/${cardId}`);
+}
+
+export const updateCard = ({boardId, columnId, cardId, payload, onSuccess}: { boardId: string; columnId: string; cardId: string; payload: UpdateCardPayload, onSuccess: () => void; }) => {
+  return PATCH(`/boards/${boardId}/columns/${columnId}/cards/${cardId}`, { ...payload })
+}
+
+export const deleteCard = ({boardId, columnId, cardId}: { boardId: string; columnId: string; cardId: string }) => {
+  return DELETE(`/boards/${boardId}/columns/${columnId}/cards/${cardId}`);
 }
 
 export const getCards = (boardId?: string) => {
   return GET(`/board/${boardId}/cards`);
-}
-
-export const getCard = (cardId?: string) => {
-  return GET(`/card/${cardId}`);
-}
-
-export const deleteCard = ({ columnId, cardId } : { columnId?: string, cardId?: string}) => {
-  return DELETE(`/column/${columnId}/card/${cardId}`);
-}
-
-export const updateCard = ({payload, onSuccess}: {payload: UpdateCardPayload, onSuccess: () => void; }) => {
-  return PUT(`/card/${payload?._id}`, { ...payload })
 }
 
 export const getCardActivities = (query: string) => {

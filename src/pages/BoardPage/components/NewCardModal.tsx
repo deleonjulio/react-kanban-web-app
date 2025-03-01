@@ -4,19 +4,19 @@ export const NewCardModal = ({
     startingColumn, 
     opened, 
     close, 
-    createCardMutate, 
+    handleCreateCard, 
     createCardIsPending
   }: { 
     form: any;
     startingColumn: string; 
     opened: boolean; 
     close: () => void; 
-    createCardMutate: ({title}: {columnId: string; title: string}) => void; 
+    handleCreateCard: ({columnId, title}: { columnId: string; title: string}) => void; 
     createCardIsPending: boolean; 
   }) => {
   
-    const onSubmit = (values: { title: string; }) => {  
-      createCardMutate({columnId: startingColumn, ...values})
+    const onSubmit = ({title}: { title: string; }) => {  
+      handleCreateCard({columnId: startingColumn, title})
     }
   
     return (

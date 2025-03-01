@@ -130,7 +130,7 @@ export const Home = () => {
             </ActionIcon>
           </Menu.Target>
           <Menu.Dropdown>
-            <Menu.Item onClick={() => navigate(`board/${element?._id}`)}>
+            <Menu.Item onClick={() => navigate(`/boards/${element?._id}`)}>
               <span className="font-medium">Edit</span>
             </Menu.Item>
             <Menu.Item disabled={deleteBoardIsPending} onClick={() => openDeleteModal(element?._id)} color="red">
