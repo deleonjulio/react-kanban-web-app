@@ -41,7 +41,7 @@ export const styles = {
     itemStyle: {
       padding: "8px",
       backgroundColor: "white",
-      borderRadius: "4px",
+      // borderRadius: "4px",
       cursor: "grab",
       // minHeight: "80px",
       // maxHeight: "100px",
@@ -50,7 +50,7 @@ export const styles = {
     itemWithPriorityStyle: {
       padding: "2px 8px 8px 8px",
       backgroundColor: "white",
-      borderRadius: "4px",
+      // borderRadius: "4px",
       cursor: "grab",
     }
   }

@@ -130,8 +130,9 @@ export const BoardPage = () => {
 
   const { mutate: updateCardLocationMutate } = useMutation({
     mutationFn: updateCardLocation,
-    onError: (error) => {   
-      console.log("Error updating column order", error);
+    onError: (error: AxiosError) => {   
+      console.log("Error moving card", error);
+      errorHandler(error)
     }
   });
 
@@ -409,7 +410,8 @@ export const BoardPage = () => {
                                   <Paper
                                     // bd="0.5px gray solid"
                                     onClick={() => handleSelectCard(item)}
-                                    shadow="sm" radius="md" withBorder
+                                    shadow="sm" 
+                                    withBorder
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
