@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Avatar, Group, Paper, Text } from "@mantine/core";
 import { notifications } from '@mantine/notifications';
@@ -19,6 +19,8 @@ const CURRENT_DATE = dayjs();
 
 export const BoardPage = () => { 
   const { id: boardId } = useParams();
+
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [createCardModalOpened, { open: openCreateCardModal, close: closeCreateCardModal }] = useDisclosure(false);
   const [cardModalOpened, { open: openCardModal, close: closeCardModal }] = useDisclosure(false);
@@ -49,25 +51,41 @@ export const BoardPage = () => {
     retry: false,
     refetchOnWindowFocus: false
   })
-
-  const { data: initialSelectedCard } = useQuery({
-    queryKey: [selectedCard?._id, selectedCard?.title, selectedCard?.content, selectedCard?.formatted_content],
+  
+  const { data: initialSelectedCard, isFetching: getCardIsFetching, error: getCardError } = useQuery({
+    queryKey: [searchParams?.get('cardId')],
     queryFn: () => {
-      if (boardId && selectedCard?.column_id && selectedCard?._id) {
-        return getCard({ boardId, columnId: selectedCard.column_id, cardId: selectedCard._id });
+      if (boardId && searchParams?.get('columnId'), searchParams?.get('cardId')) {
+        return getCard({ boardId, columnId: searchParams?.get('columnId'), cardId: searchParams?.get('cardId')});
       }
     },
-    enabled: !!(boardId && selectedCard?.column_id && selectedCard?._id),
+    enabled: searchParams?.get('columnId') !== null && searchParams?.get('cardId') !== null,
     retry: false,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
   })
+
+  const handleSelectCard = (item: Card) => setSearchParams({ columnId: item?.column_id, cardId: item?._id })
+
+  useEffect(() => {
+    if(searchParams?.get('columnId') === null && searchParams?.get('cardId') === null) {
+      closeCardModal()
+      setSelectedCard(null);
+    } else {
+      openCardModal()
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if(initialSelectedCard?.data) {
       setSelectedCard(initialSelectedCard.data)
-      openCardModal()
     }
   }, [initialSelectedCard])
+
+  useEffect(() => {
+    if(getCardError) {
+      setSelectedCard(null)
+    }
+  }, [getCardError])
 
   useEffect(() => {
     if(data?.data) {
@@ -310,11 +328,8 @@ export const BoardPage = () => {
     }
   };
 
-  const handleSelectCard = (item: Card) => {
-    setSelectedCard(item)
-  }
-
   const handleCloseCardModal = () => {
+    setSearchParams({})
     closeCardModal()
     setSelectedCard(null);
   }
@@ -456,6 +471,7 @@ export const BoardPage = () => {
         initDeleteCard={initDeleteCard} 
         handleUpdateCard={handleUpdateCard}
         updateCardIsPending={updateCardIsPending}
+        getCardIsFetching={getCardIsFetching}
       />
       <DeleteCardModal 
         opened={deleteCardModalOpened}
