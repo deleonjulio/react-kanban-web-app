@@ -1,6 +1,6 @@
 import { POST, DELETE, GET } from "../utils/request"
 
-export const createBoard = (payload: { name: string; }) => {
+export const createBoard = (payload: { name: string; boardKey: string; }) => {
   return POST('/boards', payload);
 }
 

@@ -15,6 +15,7 @@ type Card = {
     column_id: string;
     priority?: string | null;
     due_date?: DateValue | null;
+    card_key: string;
 }
 
 type SelectedCard = Card & {

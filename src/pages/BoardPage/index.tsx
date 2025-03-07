@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { Avatar, Group, Paper, Text } from "@mantine/core";
+import { Avatar, Group, Paper, Space, Text } from "@mantine/core";
 import { notifications } from '@mantine/notifications';
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard, updateCard, deleteColumn } from "../../apis";
@@ -55,8 +55,10 @@ export const BoardPage = () => {
   const { data: initialSelectedCard, isFetching: getCardIsFetching, error: getCardError } = useQuery({
     queryKey: [searchParams?.get('cardId')],
     queryFn: () => {
-      if (boardId && searchParams?.get('columnId'), searchParams?.get('cardId')) {
-        return getCard({ boardId, columnId: searchParams?.get('columnId'), cardId: searchParams?.get('cardId')});
+      const columnId = searchParams?.get('columnId');
+      const cardId = searchParams?.get('cardId');
+      if (boardId && columnId && cardId) {
+        return getCard({ boardId, columnId, cardId });
       }
     },
     enabled: searchParams?.get('columnId') !== null && searchParams?.get('cardId') !== null,
@@ -431,11 +433,14 @@ export const BoardPage = () => {
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
                                     style={{
-                                      ...(item?.priority ? styles.itemWithPriorityStyle: styles.itemStyle),
+                                      ...(styles.itemStyle),
                                       ...provided.draggableProps.style,
                                     }}
                                   >
-                                    <PriorityBadge priority={item?.priority} size="xs" />
+                                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                                      <Text fw={900} size="xs" c="gray.7">{item?.card_key}</Text>
+                                      <PriorityBadge priority={item?.priority} size="xs" />
+                                    </div>
                                     <Text size="sm">
                                       {item.title}
                                     </Text>

@@ -87,9 +87,11 @@ export const Home = () => {
       mode: 'uncontrolled',
       initialValues: {
           name: '',
+          boardKey: ''
       },
       validate: {
           name: (value) => (value.length < 1 ? 'Required' : null),
+          boardKey: (value)  => (value.length < 1 ? 'Required' : null),
       }
   });
 
@@ -104,7 +106,7 @@ export const Home = () => {
       },
   })
 
-  const onSubmit = (values: { name: string }) => {
+  const onSubmit = (values: { name: string; boardKey: string; }) => {
       createBoardMutate(values)
   }
 
@@ -191,12 +193,18 @@ export const Home = () => {
             )}
           </div>
           <Modal opened={opened} onClose={close} title="New Board">
-                <form onSubmit={form.onSubmit((values: { name: string }) => onSubmit(values))}>
+                <form onSubmit={form.onSubmit((values: { name: string; boardKey: string; }) => onSubmit(values))}>
                     <TextInput 
                         disabled={createBoardIsPending}
                         key={form.key('name')}
                         {...form.getInputProps('name')}
                         label="Board name" 
+                    />
+                    <TextInput 
+                        disabled={createBoardIsPending}
+                        key={form.key('boardKey')}
+                        {...form.getInputProps('boardKey')}
+                        label="Board key" 
                     />
                     <Group mt="lg">
                         <Button type="submit" disabled={createBoardIsPending}>Create</Button>
