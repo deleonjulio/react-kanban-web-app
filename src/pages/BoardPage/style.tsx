@@ -1,11 +1,18 @@
 export const styles = {
-    containerStyle: {
+    boardStyle: {
       display: "flex",
       gap: "16px",
       padding: "16px",
-      // overflowX: "auto",
-      maxHeight: '100vh',
+      overflowX: "auto",
       backgroundColor: "#f0f0f0",
+    },
+    containerStyle: {
+      display: "flex",
+      gap: "16px",
+      // padding: "16px",
+      // overflowX: "auto",
+      // maxHeight: '100vh',  
+      // backgroundColor: "#f0f0f0",
     },
     columnStyle: {
       display: "flex",

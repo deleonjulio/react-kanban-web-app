@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { Avatar, Group, Paper, Space, Text } from "@mantine/core";
+import { Avatar, Group, Paper, Text } from "@mantine/core";
 import { notifications } from '@mantine/notifications';
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard, updateCard, deleteColumn } from "../../apis";
+import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
 import dayjs from "dayjs";
-import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader, PriorityBadge, BoardNotFound, DeleteColumnModal } from "./components";
+import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader, PriorityBadge, BoardNotFound, DeleteColumnModal, CreateColumn } from "./components";
 import { Head } from "../../components";
 import type { Board, Card, SelectedCard, UpdateCardPayload } from "../../types";
 import { styles } from "./style";
@@ -53,23 +53,22 @@ export const BoardPage = () => {
   })
   
   const { data: initialSelectedCard, isFetching: getCardIsFetching, error: getCardError } = useQuery({
-    queryKey: [searchParams?.get('cardId')],
+    queryKey: [searchParams?.get('selectedCard')],
     queryFn: () => {
-      const columnId = searchParams?.get('columnId');
-      const cardId = searchParams?.get('cardId');
-      if (boardId && columnId && cardId) {
-        return getCard({ boardId, columnId, cardId });
+      const cardKey = searchParams?.get('selectedCard');
+      if (boardId && cardKey) {
+        return getCard({ boardId, cardKey });
       }
     },
-    enabled: searchParams?.get('columnId') !== null && searchParams?.get('cardId') !== null,
+    enabled: searchParams?.get('selectedCard') !== null,
     retry: false,
     refetchOnWindowFocus: false,
   })
 
-  const handleSelectCard = (item: Card) => setSearchParams({ columnId: item?.column_id, cardId: item?._id })
+  const handleSelectCard = (item: Card) => setSearchParams({ selectedCard: item.card_key })
 
   useEffect(() => {
-    if(searchParams?.get('columnId') === null && searchParams?.get('cardId') === null) {
+    if(searchParams?.get('selectedCard') === null) {
       closeCardModal()
       setSelectedCard(null);
     } else {
@@ -224,10 +223,34 @@ export const BoardPage = () => {
     }
   }
 
+  const { mutate: createColumnMutate, isPending: createColumnIsPending } = useMutation({
+    mutationFn: createColumn,
+    onSuccess: (response, variable) => {
+      const updatedColumns = { 
+        ...columns, 
+        [response.data._id]: {
+          name: response.data.name,
+          items: [], 
+        } 
+      };
+      setColumns(updatedColumns);
+      variable.onSuccess()
+    },
+    onError: (error: AxiosError) => {   
+      console.log("Error creating card", error);
+      errorHandler(error)
+    }
+  });
+
+  const handleCreateColumn = ({name, onSuccess}: {name: string; onSuccess: () => void}) => {
+    if(boardId) {
+      createColumnMutate({ boardId, name, onSuccess });
+    }
+  }
+
   const { mutate: deleteColumnMutate, isPending: deleteColumnIsPending } = useMutation({
     mutationFn: deleteColumn,
     onSuccess: (response, variable) => {
-      console.log(response);
         let updatedColumns = { ...columns }
         if(variable?.columnId) {
             delete updatedColumns[variable?.columnId]
@@ -386,87 +409,93 @@ export const BoardPage = () => {
   }
 
   return (
-    <div style={styles.containerStyle as React.CSSProperties}>
+    <div style={styles.boardStyle as React.CSSProperties}>
       <Head title={BOARD_NAME} />
-      <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="columns" direction="horizontal" type="COLUMN">
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              style={styles.containerStyle as React.CSSProperties}
-            >
-              {Object.entries(columns).map(([columnId, column], index) => (
-                <Draggable key={columnId} draggableId={columnId} index={index}>
-                  {(provided) => (
-                    <div 
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      style={{ ...styles.columnStyle as React.CSSProperties, ...provided.draggableProps.style }}
-                    >
-                      <div
-                        {...provided.dragHandleProps}
-                        style={styles.columnHeaderStyle as React.CSSProperties}
-                      >
-                        <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(columnId)} initDeleteColumn={() => initDeleteColumn(columnId)} />
-                      </div>
-                      <Droppable droppableId={columnId} type="ITEM">
-                        {(provided) => (
+      <div>
+        <Text>This is filter location</Text>
+        <div style={{display:"flex", columnGap: 8}}>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="columns" direction="horizontal" type="COLUMN">
+              {(provided) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  style={styles.containerStyle as React.CSSProperties}
+                >
+                  {Object.entries(columns).map(([columnId, column], index) => (
+                    <Draggable key={columnId} draggableId={columnId} index={index}>
+                      {(provided) => (
+                        <div 
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          style={{ ...styles.columnStyle as React.CSSProperties, ...provided.draggableProps.style }}
+                        >
                           <div
-                            {...provided.droppableProps}
-                            ref={provided.innerRef}
-                            style={styles.itemListStyle as React.CSSProperties}
+                            {...provided.dragHandleProps}
+                            style={styles.columnHeaderStyle as React.CSSProperties}
                           >
-                            {column.items.map((item, index: number) => (
-                              <Draggable
-                                key={item._id}
-                                draggableId={item._id}
-                                index={index}
-                              >
-                                {(provided) => (
-                                  <Paper
-                                    // bd="0.5px gray solid"
-                                    onClick={() => handleSelectCard(item)}
-                                    shadow="sm" 
-                                    withBorder
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    style={{
-                                      ...(styles.itemStyle),
-                                      ...provided.draggableProps.style,
-                                    }}
-                                  >
-                                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-                                      <Text fw={900} size="xs" c="gray.7">{item?.card_key}</Text>
-                                      <PriorityBadge priority={item?.priority} size="xs" />
-                                    </div>
-                                    <Text size="sm">
-                                      {item.title}
-                                    </Text>
-                                    <Group gap="xs" justify="space-between">
-                                      <Text size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>
-                                        {item.due_date && dayjs(item.due_date).format('MMM. DD, YYYY')}
-                                      </Text>
-                                      <Avatar size="sm" name="JULIO" color="initials" />
-                                    </Group>
-                                  </Paper>
-                                )}
-                              </Draggable>
-                            ))}
-                            {provided.placeholder}
+                            <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(columnId)} initDeleteColumn={() => initDeleteColumn(columnId)} />
                           </div>
-                        )}
-                      </Droppable>
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+                          <Droppable droppableId={columnId} type="ITEM">
+                            {(provided) => (
+                              <div
+                                {...provided.droppableProps}
+                                ref={provided.innerRef}
+                                style={styles.itemListStyle as React.CSSProperties}
+                              >
+                                {column.items.map((item, index: number) => (
+                                  <Draggable
+                                    key={item._id}
+                                    draggableId={item._id}
+                                    index={index}
+                                  >
+                                    {(provided) => (
+                                      <Paper
+                                        // bd="0.5px gray solid"
+                                        onClick={() => handleSelectCard(item)}
+                                        shadow="sm" 
+                                        withBorder
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        {...provided.dragHandleProps}
+                                        style={{
+                                          ...(styles.itemStyle),
+                                          ...provided.draggableProps.style,
+                                        }}
+                                      >
+                                        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                                          <Text fw={900} size="xs" c="gray.7">{item?.card_key}</Text>
+                                          <PriorityBadge priority={item?.priority} size="xs" />
+                                        </div>
+                                        <Text size="sm">
+                                          {item.title}
+                                        </Text>
+                                        <Group gap="xs" justify="space-between">
+                                          <Text size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>
+                                            {item.due_date && dayjs(item.due_date).format('MMM. DD, YYYY')}
+                                          </Text>
+                                          <Avatar size="sm" name="JULIO" color="initials" />
+                                        </Group>
+                                      </Paper>
+                                    )}
+                                  </Draggable>
+                                ))}
+                                {provided.placeholder}
+                              </div>
+                            )}
+                          </Droppable>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+          <CreateColumn handleCreateColumn={handleCreateColumn} createColumnIsPending={createColumnIsPending} />
+        </div>
+      </div>
       <NewCardModal form={form} opened={createCardModalOpened} close={handleCloseCreateCardModal} handleCreateCard={handleCreateCard} createCardIsPending={createCardIsPending} />
       <CardModal 
         opened={cardModalOpened} 

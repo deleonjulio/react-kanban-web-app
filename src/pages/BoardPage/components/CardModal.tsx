@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Divider, Modal, Title, Paper, SimpleGrid, Text, Grid, Button, Flex, TextInput, Select, Avatar, Group, Center, Loader } from "@mantine/core";
+import { Divider, Modal, Title, Paper, SimpleGrid, Text, Grid, Button, Flex, TextInput, Select, Avatar, Group, Center, Loader, Badge } from "@mantine/core";
 import { DatePickerInput } from '@mantine/dates';
 import dayjs from "dayjs";
 import { SelectedCard, UpdateCardPayload } from "../../../types";
@@ -140,7 +140,15 @@ export const CardModal = ({
     }, [card])
     
     return (
-        <Modal classNames={{ content: "card-modal" }} title={<Text size="sm" fw={700}>{boardName}</Text>} closeOnEscape={false} closeOnClickOutside={false} opened={opened} onClose={resetCardModal} size="64rem">
+        <Modal 
+            classNames={{ content: "card-modal" }} 
+            title={selectedCard?.card_key ? <Text fw={700}>{selectedCard?.card_key}</Text> : null } 
+            closeOnEscape={false} 
+            closeOnClickOutside={false} 
+            opened={opened} 
+            onClose={resetCardModal} 
+            size="64rem"
+        >
             {(getCardIsFetching) && (
                 <SimpleGrid cols={1} verticalSpacing="lg" pt="sm">
                     <Center>
@@ -243,13 +251,16 @@ export const CardModal = ({
                                 </Grid.Col>
                             </Grid>
                             <Paper shadow="xs" p="md">
-                                <Group gap="xs">
-                                    <Avatar name={card?.created_by?.name } color="initials" />
-                                    <div>
-                                        <Text size="sm" fw={700}>{card?.created_by?.name ?? '-'}</Text>
-                                        <Text size="xs" c="gray.7">Created {dayjs(card?.date_created).format('MMM. DD, YYYY HH:mm:ss')}</Text>
-                                    </div>
-                                </Group>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Group gap="xs">
+                                        <Avatar name={card?.created_by?.name} color="initials" />
+                                        <div>
+                                            <Text size="sm" fw={700}>{card?.created_by?.name ?? '-'}</Text>
+                                            <Text size="xs" c="gray.7">Created {dayjs(card?.date_created).format('MMM. DD, YYYY HH:mm:ss')}</Text>
+                                        </div>
+                                    </Group>
+                                    {selectedCard?.column_info?.name ? <Badge>{selectedCard?.column_info?.name}</Badge> : null}
+                                </div>
                                 <Divider my="md" variant="dotted" />
                                 {!editorView?.isEmpty && <EditorContent key={editableSelectedCard?._id} editor={editorView} />}
                                 {!editorView?.isEmpty && <Divider my="md" variant="dotted" />}

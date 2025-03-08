@@ -1,5 +1,5 @@
 import { ActionIcon } from "@mantine/core";
-import { Menu} from '@mantine/core';
+import { Menu } from '@mantine/core';
 import { IconTrash, IconPlus, IconDots } from '@tabler/icons-react';
 
 export const ColumnHeader = ({ name, initCreateCard, initDeleteColumn }: { name:string; initCreateCard: () => void; initDeleteColumn: () => void; }) => {

@@ -5,8 +5,8 @@ export const createCard = ({boardId, columnId, title}: { boardId: string; column
   return POST(`/boards/${boardId}/columns/${columnId}/cards`, { title });
 }
 
-export const getCard = ({boardId, columnId, cardId}: { boardId: string; columnId: string; cardId: string }) => {
-  return GET(`/boards/${boardId}/columns/${columnId}/cards/${cardId}`);
+export const getCard = ({boardId, cardKey}: { boardId: string; cardKey: string; }) => {
+  return GET(`/boards/${boardId}/cards/${cardKey}`);
 }
 
 export const updateCard = ({boardId, columnId, cardId, payload, onSuccess}: { boardId: string; columnId: string; cardId: string; payload: UpdateCardPayload, onSuccess: () => void; }) => {
