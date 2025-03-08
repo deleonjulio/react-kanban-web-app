@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { Avatar, Group, Paper, Text } from "@mantine/core";
+import { Avatar, Group, Paper, Space, Text } from "@mantine/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
 import dayjs from "dayjs";
-import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader, PriorityBadge, BoardNotFound, DeleteColumnModal, CreateColumn } from "./components";
+import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader, PriorityBadge, BoardNotFound, DeleteColumnModal, CreateColumn, BoardFilter } from "./components";
 import { Head } from "../../components";
 import type { Board, Card, SelectedCard, UpdateCardPayload } from "../../types";
 import { styles } from "./style";
@@ -399,7 +399,8 @@ export const BoardPage = () => {
     <div style={styles.boardStyle as React.CSSProperties} id="board-container">
       <Head title={BOARD_NAME} />
       <div>
-        <Text>This is filter location</Text>
+        <BoardFilter />
+        <Space h="xs" />
         <div style={{display:"flex", columnGap: 8}}>
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="columns" direction="horizontal" type="COLUMN">
