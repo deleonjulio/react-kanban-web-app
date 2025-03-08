@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Avatar, Group, Paper, Text } from "@mantine/core";
-import { notifications } from '@mantine/notifications';
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
@@ -197,12 +196,6 @@ export const BoardPage = () => {
         }
         closeDeleteCardModal()
         handleCloseCardModal()
-        notifications.show({
-            title: 'Delete',
-            message: 'Card deleted successfully.',
-            position: "top-right",
-            color: "green"
-        })
     },
     onError: (error: AxiosError) => {   
       console.log("Error deleting card", error);
@@ -257,12 +250,6 @@ export const BoardPage = () => {
             setColumns(updatedColumns);
         }
         handleCloseDeleteColumnModal()
-        notifications.show({
-            title: 'Delete',
-            message: 'Column deleted successfully.',
-            position: "top-right",
-            color: "green"
-        })
     },
     onError: (error: AxiosError) => {   
       console.log("Error deleting column", error);
@@ -409,7 +396,7 @@ export const BoardPage = () => {
   }
 
   return (
-    <div style={styles.boardStyle as React.CSSProperties}>
+    <div style={styles.boardStyle as React.CSSProperties} id="board-container">
       <Head title={BOARD_NAME} />
       <div>
         <Text>This is filter location</Text>

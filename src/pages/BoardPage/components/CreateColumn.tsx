@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActionIcon, Tooltip, TextInput } from "@mantine/core";
 import { IconPlus, IconCheck, IconX } from '@tabler/icons-react';
 import { useForm } from '@mantine/form';
@@ -10,6 +10,8 @@ export const CreateColumn = ({
   handleCreateColumn: ({ name, onSuccess }: { name: string; onSuccess: () => void; }) => void;
   createColumnIsPending: boolean;
 }) => {
+  const scrollContainer = document.getElementById("board-container");
+
   const form = useForm({
     mode: 'uncontrolled',
     initialValues: {
@@ -31,6 +33,12 @@ export const CreateColumn = ({
   const onSubmit = ({ name }: { name: string; }) => {  
     handleCreateColumn({ name, onSuccess: resetCreateColumn });
   }
+
+  useEffect(() =>{
+    if (scrollContainer) {
+      scrollContainer.scrollBy({ left: 200, behavior: "smooth" });
+    }
+  }, [isCreating])
 
   return (
     <div style={{width: 225}}>
