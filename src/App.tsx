@@ -9,6 +9,7 @@ import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import '@mantine/dates/styles.css';
 import './App.css';
+import { ColumnsProvider } from './providers/ColumnsProvider';
 
 const queryClient = new QueryClient()
 
@@ -19,7 +20,9 @@ const App = () => {
                 <MantineProvider>
                     <ModalsProvider>
                         <Notifications />
-                        <RouterProvider router={Root} />
+                        <ColumnsProvider>
+                            <RouterProvider router={Root} />
+                        </ColumnsProvider>
                     </ModalsProvider>
                 </MantineProvider>
             </QueryClientProvider>

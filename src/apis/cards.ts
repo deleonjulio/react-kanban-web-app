@@ -28,7 +28,7 @@ export const updateCardLocation = ({
     sourceColumnId: string;
     destinationColumnId: string; 
     destinationIndex: number;
-    cardId: string;
+    cardId?: string;
   }) => {
     return PATCH(`/boards/${boardId}/columns/${sourceColumnId}/cards/${cardId}/move/`, { destinationColumnId, destinationIndex });
 }

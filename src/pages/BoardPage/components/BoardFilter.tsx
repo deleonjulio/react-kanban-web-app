@@ -9,6 +9,7 @@ export const BoardFilter = () => {
           label="Priority"
           clearable
           data={PRIORITY_OPTIONS}
+          style={{ width: 200 }}
         />
       </Grid.Col>
     </Grid>

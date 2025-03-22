@@ -1,25 +1,27 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { Avatar, Group, Paper, Space, Text } from "@mantine/core";
+import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
+import { Space } from "@mantine/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getBoard, updateColumnOrder, createCard, getCards, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn } from "../../apis";
+import { getBoard, updateColumnOrder, createCard, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
-import dayjs from "dayjs";
-import { NewCardModal, CardModal, DeleteCardModal, ColumnHeader, PriorityBadge, BoardNotFound, DeleteColumnModal, CreateColumn, BoardFilter } from "./components";
+import { NewCardModal, CardModal, DeleteCardModal, BoardNotFound, DeleteColumnModal, CreateColumn, BoardFilter, BoardColumn } from "./components";
 import { Head } from "../../components";
-import type { Board, Card, SelectedCard, UpdateCardPayload } from "../../types";
+import type { SelectedCard, UpdateCardPayload } from "../../types";
 import { styles } from "./style";
 import { errorHandler } from "../../utils/helper";
 import { AxiosError } from "axios";
-
-const CURRENT_DATE = dayjs();
+import { useColumns, useColumnsDispatch } from "../../providers/ColumnsProvider";
+import { BoardColumns, Card } from "../../providers/ColumnsProvider";
 
 export const BoardPage = () => { 
   const { id: boardId } = useParams();
 
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const columns = useColumns()
+  const columnsDispatch = useColumnsDispatch()
 
   const [createCardModalOpened, { open: openCreateCardModal, close: closeCreateCardModal }] = useDisclosure(false);
   const [cardModalOpened, { open: openCardModal, close: closeCardModal }] = useDisclosure(false);
@@ -29,11 +31,7 @@ export const BoardPage = () => {
   const [columnToBeDeleted, setColumnToBeDeleted] = useState<string | null>(null);
   const [cardCreationColumnId, setCardCreationColumnId] = useState<string | null>(null)
 
-  const [columns, setColumns] = useState<Board>({});
-
-  const columnList = Object.keys(columns);
-
-  const { data, error: errorGetBoard } = useQuery({
+  const { data: boardInfo, error: errorGetBoard } = useQuery({
     queryKey: [boardId],
     queryFn: () => getBoard(boardId),
     enabled: boardId != undefined,
@@ -41,15 +39,7 @@ export const BoardPage = () => {
     refetchOnWindowFocus: false
   })
   
-  const BOARD_NAME = data?.data?.name
-
-  const { data: cards } = useQuery({
-    queryKey: ['cards'],
-    queryFn: () => getCards(boardId),
-    enabled: columnList.length > 0,
-    retry: false,
-    refetchOnWindowFocus: false
-  })
+  const BOARD_NAME = boardInfo?.data?.name
   
   const { data: initialSelectedCard, isFetching: getCardIsFetching, error: getCardError } = useQuery({
     queryKey: [searchParams?.get('selectedCard')],
@@ -88,35 +78,19 @@ export const BoardPage = () => {
   }, [getCardError])
 
   useEffect(() => {
-    if(data?.data) {
-      const { data: initialBoardData } = data;
-      const boardData: Board = {};
+    if(boardInfo?.data) {
+      const { data: initialBoardData } = boardInfo;
+      const boardData: BoardColumns = {};
 
       initialBoardData?.columns?.forEach((column: { _id: string; name: string; }) => {
         boardData[column._id] = {
           name: column.name,
           items: []
         }
-
       })
-
-      setColumns(boardData);      
+      columnsDispatch({type: "LIST", boardData})
     }
-  }, [data])
-
-  useEffect(() => {
-    if(cards?.data) {
-      const cardsData = cards.data;
-      const updatedColumns: Board = { ...columns };
-      cardsData.forEach(({ _id, cards }: { _id: string; cards: any; }) => {
-        if (updatedColumns[_id]) {
-          updatedColumns[_id].items = cards;
-        }
-      });
-
-      setColumns(updatedColumns);
-    }
-  }, [cards])
+  }, [boardInfo])
 
   const form = useForm({
     mode: 'uncontrolled',
@@ -141,7 +115,7 @@ export const BoardPage = () => {
     }
   });
 
-  const handleUpdateColumnOrder = (reorderedColumns: Board) => {
+  const handleUpdateColumnOrder = (reorderedColumns: BoardColumns) => {
     const columns = Object.keys(reorderedColumns);
     updateColumnOrderMutate({ boardId, columnOrder: columns });
   }
@@ -169,7 +143,7 @@ export const BoardPage = () => {
           ...columns[variable.columnId].items] 
         } 
       };
-      setColumns(updatedColumns);
+      columnsDispatch({type: "LIST", boardData: updatedColumns})
     },
     onError: (error: AxiosError) => {   
       console.log("Error creating card", error);
@@ -192,7 +166,7 @@ export const BoardPage = () => {
                 ...updatedColumns[variable?.columnId],
                 items: updatedColumns[variable?.columnId]?.items.filter((card) => card._id != variable?.cardId)
             }
-            setColumns(updatedColumns);
+            columnsDispatch({type: "LIST", boardData: updatedColumns})
         }
         closeDeleteCardModal()
         handleCloseCardModal()
@@ -226,7 +200,7 @@ export const BoardPage = () => {
           items: [], 
         } 
       };
-      setColumns(updatedColumns);
+      columnsDispatch({type: "LIST", boardData: updatedColumns})
       variable.onSuccess()
     },
     onError: (error: AxiosError) => {   
@@ -243,11 +217,10 @@ export const BoardPage = () => {
 
   const { mutate: deleteColumnMutate, isPending: deleteColumnIsPending } = useMutation({
     mutationFn: deleteColumn,
-    onSuccess: (response, variable) => {
-        let updatedColumns = { ...columns }
+    onSuccess: (_response, variable) => {
         if(variable?.columnId) {
-            delete updatedColumns[variable?.columnId]
-            setColumns(updatedColumns);
+          const { [variable?.columnId]: toRemove, ...updatedColumns } = columns; 
+          columnsDispatch({type: "LIST", boardData: updatedColumns})
         }
         handleCloseDeleteColumnModal()
     },
@@ -287,7 +260,7 @@ export const BoardPage = () => {
       columnOrder.splice(destination.index, 0, movedColumn);
 
       const reorderedColumns = Object.fromEntries(columnOrder);
-      setColumns(reorderedColumns);
+      columnsDispatch({type: "LIST", boardData: reorderedColumns})
 
       //prevent from making api call if the order is the same
       if(JSON.stringify(columns) === JSON.stringify(reorderedColumns)) return;
@@ -307,13 +280,15 @@ export const BoardPage = () => {
         
         // Same column
         sourceItems.splice(destination.index, 0, movedItem);
-        setColumns({
+        const updatedColumns = {
           ...columns,
           [source.droppableId]: {
             ...sourceColumn,
             items: sourceItems,
           },
-        });
+        }
+
+        columnsDispatch({type: "LIST", boardData: updatedColumns})
 
         if (sourceColumnId && destinationColumnId) {
           updateCardLocationMutate({ boardId, sourceColumnId, destinationColumnId, destinationIndex: destination.index, cardId: movedItem._id });
@@ -321,7 +296,8 @@ export const BoardPage = () => {
       } else {
         // Different columns
         destinationItems.splice(destination.index, 0, movedItem);
-        setColumns({
+
+        const updatedColumns = {
           ...columns,
           [source.droppableId]: {
             ...sourceColumn,
@@ -331,7 +307,9 @@ export const BoardPage = () => {
             ...destinationColumn,
             items: destinationItems,
           },
-        });
+        }
+
+        columnsDispatch({type: "LIST", boardData: updatedColumns})
         
         if (sourceColumnId && destinationColumnId) {
           updateCardLocationMutate({ boardId, sourceColumnId, destinationColumnId, destinationIndex: destination.index, cardId: movedItem._id});
@@ -380,7 +358,7 @@ export const BoardPage = () => {
             ...variable.payload
           }) : prev)
           
-          setColumns(updatedColumns);
+          columnsDispatch({type: "LIST", boardData: updatedColumns})
       }
       variable.onSuccess()
     },
@@ -410,71 +388,8 @@ export const BoardPage = () => {
                   ref={provided.innerRef}
                   style={styles.containerStyle as React.CSSProperties}
                 >
-                  {Object.entries(columns).map(([columnId, column], index) => (
-                    <Draggable key={columnId} draggableId={columnId} index={index}>
-                      {(provided) => (
-                        <div 
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          style={{ ...styles.columnStyle as React.CSSProperties, ...provided.draggableProps.style }}
-                        >
-                          <div
-                            {...provided.dragHandleProps}
-                            style={styles.columnHeaderStyle as React.CSSProperties}
-                          >
-                            <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(columnId)} initDeleteColumn={() => initDeleteColumn(columnId)} />
-                          </div>
-                          <Droppable droppableId={columnId} type="ITEM">
-                            {(provided) => (
-                              <div
-                                {...provided.droppableProps}
-                                ref={provided.innerRef}
-                                style={styles.itemListStyle as React.CSSProperties}
-                              >
-                                {column.items.map((item, index: number) => (
-                                  <Draggable
-                                    key={item._id}
-                                    draggableId={item._id}
-                                    index={index}
-                                  >
-                                    {(provided) => (
-                                      <Paper
-                                        // bd="0.5px gray solid"
-                                        onClick={() => handleSelectCard(item)}
-                                        shadow="sm" 
-                                        withBorder
-                                        ref={provided.innerRef}
-                                        {...provided.draggableProps}
-                                        {...provided.dragHandleProps}
-                                        style={{
-                                          ...(styles.itemStyle),
-                                          ...provided.draggableProps.style,
-                                        }}
-                                      >
-                                        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-                                          <Text fw={900} size="xs" c="gray.7">{item?.card_key}</Text>
-                                          <PriorityBadge priority={item?.priority} size="xs" />
-                                        </div>
-                                        <Text size="sm">
-                                          {item.title}
-                                        </Text>
-                                        <Group gap="xs" justify="space-between">
-                                          <Text size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>
-                                            {item.due_date && dayjs(item.due_date).format('MMM. DD, YYYY')}
-                                          </Text>
-                                          <Avatar size="sm" name="JULIO" color="initials" />
-                                        </Group>
-                                      </Paper>
-                                    )}
-                                  </Draggable>
-                                ))}
-                                {provided.placeholder}
-                              </div>
-                            )}
-                          </Droppable>
-                        </div>
-                      )}
-                    </Draggable>
+                  {Object.entries(columns).map(([columnId], index) => (
+                    <BoardColumn key={columnId} boardId={boardId} columnId={columnId} index={index} initCreateCard={initCreateCard} initDeleteColumn={initDeleteColumn} handleSelectCard={handleSelectCard}/>
                   ))}
                   {provided.placeholder}
                 </div>

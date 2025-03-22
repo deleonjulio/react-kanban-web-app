@@ -36,6 +36,7 @@ export const CreateColumn = ({
 
   useEffect(() =>{
     if (scrollContainer) {
+      // NOT WORKING CURRENTLY
       scrollContainer.scrollBy({ left: 200, behavior: "smooth" });
     }
   }, [isCreating])
