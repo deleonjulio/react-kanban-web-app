@@ -19,16 +19,18 @@ export const BoardColumn = ({
     initCreateCard,
     initDeleteColumn,
     handleSelectCard,
+    columnFilters
 }: any) => {
+
     const columns = useColumns()
     const columnsDispatch = useColumnsDispatch()
-    
+
     const column = columns?.[columnId]
     const lastCard = column?.items[column?.items?.length - 1];
 
     const { data: cards, error: errorGetColumnCards } = useQuery({
-        queryKey: [boardId, columnId],
-        queryFn: () => getColumnCards({boardId, columnId}),
+        queryKey: [boardId, columnId, columnFilters.priority],
+        queryFn: () => getColumnCards({boardId, columnId, columnFilters}),
         enabled: boardId !== undefined && columnId !== undefined,
         retry: false,
         refetchOnWindowFocus: false
@@ -36,7 +38,7 @@ export const BoardColumn = ({
 
     const { data: olderCards, refetch, isFetching: getColumnCardsOlderIsPending } = useQuery({
         queryKey: ["columnCardsOlder", columnId],
-        queryFn: () => getColumnCardsOlder({boardId, columnId, cardId: lastCard._id}),
+        queryFn: () => getColumnCardsOlder({boardId, columnId, columnFilters, cardId: lastCard._id}),
         enabled: false, // Disabled by default, only fetch when triggered
     });
     

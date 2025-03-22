@@ -17,8 +17,9 @@ export const PUT = async (url: string, data?: unknown) => await axios(`${import.
   withCredentials: true
 })
 
-export const GET = async (url: string) => await axios(`${import.meta.env.VITE_API_URL}${url}`, {
+export const GET = async (url: string, params?: any) => await axios(`${import.meta.env.VITE_API_URL}${url}`, {
   method: 'GET',
+  params: params,
   withCredentials: true
 })
 

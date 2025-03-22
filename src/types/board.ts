@@ -39,4 +39,8 @@ type UpdateCardPayload = {
     due_date?: DateValue | null;
 }
 
-export type { Board, Column, Card, SelectedCard, UpdateCardPayload }
+type ColumnFilters = {
+    priority?: string | null
+}
+
+export type { Board, Column, Card, SelectedCard, UpdateCardPayload, ColumnFilters }
