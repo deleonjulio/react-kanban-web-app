@@ -1,14 +1,9 @@
 import { Grid, Select } from "@mantine/core"
+import { useSearchParams } from "react-router-dom"
 import { PRIORITY_OPTIONS } from "../../../config"
-import { ColumnFilters } from "../../../types"
 
-export const BoardFilter = ({
-  columnFilters,
-  setColumnFilters
-}: {
-  columnFilters: ColumnFilters;
-  setColumnFilters: any
-}) => {
+export const BoardFilter = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
 
   return (
    <Grid>
@@ -16,10 +11,18 @@ export const BoardFilter = ({
         <Select 
           label="Priority"
           clearable
-          value={columnFilters.priority}
+          value={searchParams.get('priority')}
           data={PRIORITY_OPTIONS}
           style={{ width: 200 }}
-          onChange={(value) => setColumnFilters((prev: ColumnFilters) => ({...prev, priority: value}))}
+          onChange={(value) =>  {
+            if(value) {
+              searchParams.set("priority", value)
+              setSearchParams(searchParams);
+            } else {
+              searchParams.delete("priority")
+              setSearchParams(searchParams);
+            }
+          }}
         />
       </Grid.Col>
     </Grid>

@@ -9,6 +9,7 @@ import { getColumnCards } from "../../../apis";
 import { useQuery } from "@tanstack/react-query";
 import { BoardColumns, useColumns, useColumnsDispatch } from "../../../providers/ColumnsProvider";
 import { getColumnCardsOlder } from "../../../apis";
+import { useSearchParams } from "react-router-dom";
 
 const CURRENT_DATE = dayjs();
 
@@ -19,9 +20,15 @@ export const BoardColumn = ({
     initCreateCard,
     initDeleteColumn,
     handleSelectCard,
-    columnFilters
 }: any) => {
     const scrollContainer = document.getElementById(`column-${columnId}`);
+    const [searchParams] = useSearchParams();
+
+    const priority = searchParams.get('priority')
+
+    const columnFilters = {
+        priority
+    }
 
     const columns = useColumns()
     const columnsDispatch = useColumnsDispatch()
@@ -30,7 +37,7 @@ export const BoardColumn = ({
     const lastCard = column?.items[column?.items?.length - 1];
 
     const { data: cards, error: errorGetColumnCards } = useQuery({
-        queryKey: [boardId, columnId, columnFilters.priority],
+        queryKey: [boardId, columnId, priority],
         queryFn: () => getColumnCards({boardId, columnId, columnFilters}),
         enabled: boardId !== undefined && columnId !== undefined,
         retry: false,
@@ -38,7 +45,7 @@ export const BoardColumn = ({
     })
 
     const { data: olderCards, refetch, isFetching: getColumnCardsOlderIsPending } = useQuery({
-        queryKey: ["columnCardsOlder", columnId],
+        queryKey: ["columnCardsOlder", boardId, columnId, priority],
         queryFn: () => getColumnCardsOlder({boardId, columnId, columnFilters, cardId: lastCard._id}),
         enabled: false, // Disabled by default, only fetch when triggered
     });

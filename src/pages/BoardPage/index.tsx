@@ -8,7 +8,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
 import { NewCardModal, CardModal, DeleteCardModal, BoardNotFound, DeleteColumnModal, CreateColumn, BoardFilter, BoardColumn } from "./components";
 import { Head } from "../../components";
-import type { SelectedCard, UpdateCardPayload, ColumnFilters } from "../../types";
+import type { SelectedCard, UpdateCardPayload } from "../../types";
 import { styles } from "./style";
 import { errorHandler } from "../../utils/helper";
 import { AxiosError } from "axios";
@@ -30,9 +30,6 @@ export const BoardPage = () => {
   const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null)
   const [columnToBeDeleted, setColumnToBeDeleted] = useState<string | null>(null);
   const [cardCreationColumnId, setCardCreationColumnId] = useState<string | null>(null)
-  const [columnFilters, setColumnFilters] = useState<ColumnFilters>({
-    priority: null
-  })
 
   const { data: boardInfo, error: errorGetBoard } = useQuery({
     queryKey: [boardId],
@@ -57,7 +54,10 @@ export const BoardPage = () => {
     refetchOnWindowFocus: false,
   })
 
-  const handleSelectCard = (item: Card) => setSearchParams({ selectedCard: item.card_key })
+  const handleSelectCard = (item: Card) => {
+    searchParams.set("selectedCard", item.card_key);
+    setSearchParams(searchParams)
+   }
 
   useEffect(() => {
     if(searchParams?.get('selectedCard') === null) {
@@ -322,7 +322,9 @@ export const BoardPage = () => {
   };
 
   const handleCloseCardModal = () => {
-    setSearchParams({})
+    searchParams.delete("selectedCard"); // Remove 'selectedCard' from the URL
+    setSearchParams(searchParams);
+
     closeCardModal()
     setSelectedCard(null);
   }
@@ -380,7 +382,7 @@ export const BoardPage = () => {
     <div style={styles.boardStyle as React.CSSProperties} id="board-container">
       <Head title={BOARD_NAME} />
       <div>
-        <BoardFilter columnFilters={columnFilters} setColumnFilters={setColumnFilters} />
+        <BoardFilter />
         <Space h="xs" />
         <div style={{display:"flex", columnGap: 8}}>
           <DragDropContext onDragEnd={onDragEnd}>
@@ -392,7 +394,7 @@ export const BoardPage = () => {
                   style={styles.containerStyle as React.CSSProperties}
                 >
                   {Object.entries(columns).map(([columnId], index) => (
-                    <BoardColumn key={columnId} boardId={boardId} columnId={columnId} index={index} initCreateCard={initCreateCard} initDeleteColumn={initDeleteColumn} handleSelectCard={handleSelectCard} columnFilters={columnFilters} />
+                    <BoardColumn key={columnId} boardId={boardId} columnId={columnId} index={index} initCreateCard={initCreateCard} initDeleteColumn={initDeleteColumn} handleSelectCard={handleSelectCard} />
                   ))}
                   {provided.placeholder}
                 </div>
