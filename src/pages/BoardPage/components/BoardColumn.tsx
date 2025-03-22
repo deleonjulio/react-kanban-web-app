@@ -21,6 +21,7 @@ export const BoardColumn = ({
     handleSelectCard,
     columnFilters
 }: any) => {
+    const scrollContainer = document.getElementById(`column-${columnId}`);
 
     const columns = useColumns()
     const columnsDispatch = useColumnsDispatch()
@@ -54,6 +55,10 @@ export const BoardColumn = ({
     
     useEffect(() => {
         if(cards?.data) {
+            if (scrollContainer) {
+                scrollContainer.scrollTop = 0;
+            }
+
             const cardsData = cards.data?.data;
             const updatedColumns: BoardColumns = { ...columns };
             updatedColumns[columnId].items = cardsData
@@ -79,6 +84,7 @@ export const BoardColumn = ({
         <Draggable key={columnId} draggableId={columnId} index={index}>
             {(provided) => (
             <div 
+                id={`column-${columnId}`}
                 onScroll={handleScroll}
                 ref={provided.innerRef}
                 {...provided.draggableProps}
