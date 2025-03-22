@@ -8,10 +8,7 @@ import dayjs from "dayjs";
 import { getColumnCards } from "../../../apis";
 import { useQuery } from "@tanstack/react-query";
 import { BoardColumns, useColumns, useColumnsDispatch } from "../../../providers/ColumnsProvider";
-import { useMutation } from "@tanstack/react-query";
-import { AxiosError } from "axios";
 import { getColumnCardsOlder } from "../../../apis";
-import { errorHandler } from "../../../utils/helper";
 
 const CURRENT_DATE = dayjs();
 
@@ -37,30 +34,18 @@ export const BoardColumn = ({
         refetchOnWindowFocus: false
     })
 
-    const { mutate: getColumnCardsOlderMutate, isPending: getColumnCardsOlderIsPending } = useMutation({
-        mutationFn: getColumnCardsOlder,
-        onSuccess: async ({ data }) => {
-            console.log(data.data)
-            const updatedColumns = {
-                ...columns,
-                [columnId]: {
-                    ...column,
-                    items: [...column.items, ...data.data]
-                }
-            }
-            columnsDispatch({type: "LIST", boardData: updatedColumns})
-        }, onError: (error: AxiosError) => {
-            errorHandler(error)
-        }
-    })
+    const { data: olderCards, refetch, isFetching: getColumnCardsOlderIsPending } = useQuery({
+        queryKey: ["columnCardsOlder", columnId],
+        queryFn: () => getColumnCardsOlder({boardId, columnId, cardId: lastCard._id}),
+        enabled: false, // Disabled by default, only fetch when triggered
+    });
     
     const handleScroll = (event: React.UIEvent<HTMLDivElement, UIEvent>) => {
         const target = event.currentTarget;
         const isBottom = target.scrollHeight - target.scrollTop <= target.clientHeight;
-    
         if (isBottom && !getColumnCardsOlderIsPending) {
             if(lastCard?._id) {
-                getColumnCardsOlderMutate({boardId, columnId, cardId: lastCard._id})
+                refetch()
             }
         }
     };
@@ -74,6 +59,19 @@ export const BoardColumn = ({
             columnsDispatch({type: "LIST", boardData: updatedColumns})
         }
     }, [cards])
+
+    useEffect(() => {
+        if(olderCards?.data?.data) {
+            const updatedColumns = {
+                ...columns,
+                [columnId]: {
+                    ...column,
+                    items: [...column.items, ...olderCards?.data?.data]
+                }
+            };
+            columnsDispatch({ type: "LIST", boardData: updatedColumns });
+        }
+    }, [olderCards])
 
     return (
         <Draggable key={columnId} draggableId={columnId} index={index}>

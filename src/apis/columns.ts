@@ -16,6 +16,6 @@ export const getColumnCards = ({boardId, columnId}: { boardId: string; columnId:
   return GET(`/boards/${boardId}/columns/${columnId}`);
 }
 
-export const getColumnCardsOlder = ({boardId, columnId, cardId}: { boardId: string; columnId: string; cardId: string; }) => {
+export const getColumnCardsOlder = ({boardId, columnId, cardId}: { boardId: string; columnId: string; cardId?: string; }) => {
   return GET(`/boards/${boardId}/columns/${columnId}/cards/${cardId}/old`);
 }
