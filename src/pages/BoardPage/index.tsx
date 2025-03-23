@@ -1,9 +1,13 @@
-import { useState, useEffect } from "react";
+// @flow
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { FixedSizeList, areEqual } from "react-window";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import "./style.css";
+
 import { useParams, useSearchParams } from "react-router-dom";
-import { DragDropContext, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { Space } from "@mantine/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getBoard, updateColumnOrder, createCard, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn } from "../../apis";
+import { getBoard, updateColumnOrder, createCard, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn, getColumnCardsOlder } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
 import { NewCardModal, CardModal, DeleteCardModal, BoardNotFound, DeleteColumnModal, CreateColumn, BoardFilter, BoardColumn } from "./components";
@@ -14,21 +18,235 @@ import { errorHandler } from "../../utils/helper";
 import { AxiosError } from "axios";
 import { useColumns, useColumnsDispatch } from "../../providers/ColumnsProvider";
 import { BoardColumns, Card } from "../../providers/ColumnsProvider";
+import { ColumnHeader } from "./components";
 
-export const BoardPage = () => { 
+import { getColumnCards } from "../../apis";
+
+function reorderList(list, startIndex, endIndex) {
+  const result = Array.from(list);
+  const [removed] = result.splice(startIndex, 1);
+  result.splice(endIndex, 0, removed);
+
+  return result;
+}
+
+function getStyle({ draggableStyle, virtualStyle, isDragging }) {
+  // If you don't want any spacing between your items
+  // then you could just return this.
+  // I do a little bit of magic to have some nice visual space
+  // between the row items
+  const combined = {
+    ...virtualStyle,
+    ...draggableStyle
+  };
+
+  // Being lazy: this is defined in our css file
+  const grid = 8;
+
+  // when dragging we want to use the draggable style for placement, otherwise use the virtual style
+  const result = {
+    ...combined,
+    height: isDragging ? combined.height : combined.height - grid,
+    left: isDragging ? combined.left : combined.left + grid,
+    width: isDragging
+      ? draggableStyle.width
+      : `calc(${combined.width} - ${grid * 2}px)`,
+    marginBottom: grid
+  };
+
+  return result;
+}
+
+function Item({ provided, item, style, isDragging }) {
+  return (
+    <div
+      {...provided.draggableProps}
+      {...provided.dragHandleProps}
+      ref={provided.innerRef}
+      style={getStyle({
+        draggableStyle: provided.draggableProps.style,
+        virtualStyle: style,
+        isDragging
+      })}
+      className={`item ${isDragging ? "is-dragging" : ""}`}
+      onClick={() => console.log('this is it')}
+    >
+      {item.card_key}
+    </div>
+  );
+}
+
+// Recommended react-window performance optimisation: memoize the row render function
+// Things are still pretty fast without this, but I am a sucker for making things faster
+const Row = React.memo(function Row(props) {
+  const { data: items, index, style } = props;
+  const item = items[index];
+  
+  // We are rendering an extra item for the placeholder
+  if (!item) {
+    return null;
+  }
+
+  return (
+    <Draggable draggableId={item._id} index={index} key={item._id}>
+      {provided => <Item provided={provided} item={item} style={style} />}
+    </Draggable>
+  );
+}, areEqual);
+
+const ItemList = React.memo(function ItemList({ column, index, handleScroll }) {
+  // There is an issue I have noticed with react-window that when reordered
+  // react-window sets the scroll back to 0 but does not update the UI
+  // I should raise an issue for this.
+  // As a work around I am resetting the scroll to 0
+  // on any list that changes it's index
+  const listRef = useRef();
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (list) {
+      list.scrollTo(0);
+    }
+  }, [index]);
+
+  return (
+    <Droppable
+      droppableId={column._id}
+      mode="virtual"
+      renderClone={(provided, snapshot, rubric) => (
+        <Item
+          provided={provided}
+          isDragging={snapshot.isDragging}
+          item={column.items[rubric.source.index]}
+        />
+      )}
+    >
+      {(provided, snapshot) => {
+        // Add an extra item to our list to make space for a dragging item
+        // Usually the DroppableProvided.placeholder does this, but that won't
+        // work in a virtual list
+        const itemCount = snapshot.isUsingPlaceholder
+          ? column.items.length + 1
+          : column.items.length;
+
+        return (
+          <FixedSizeList
+            onScroll={(e) => handleScroll(e, listRef)}
+            height={500}
+            itemCount={itemCount}
+            itemSize={80}
+            width={300}
+            outerRef={provided.innerRef}
+            itemData={column.items}
+            className="task-list"
+            ref={listRef}
+          >
+            {Row}
+          </FixedSizeList>
+        );
+      }}
+    </Droppable>
+  );
+});
+
+const Column = React.memo(function Column({ column, index, initCreateCard, initDeleteColumn }) {
   const { id: boardId } = useParams();
-
-  const [searchParams, setSearchParams] = useSearchParams();
-
   const columns = useColumns()
   const columnsDispatch = useColumnsDispatch()
 
-  const [createCardModalOpened, { open: openCreateCardModal, close: closeCreateCardModal }] = useDisclosure(false);
-  const [cardModalOpened, { open: openCardModal, close: closeCardModal }] = useDisclosure(false);
-  const [deleteCardModalOpened, { open: openDeleteCardModal, close: closeDeleteCardModal }] = useDisclosure(false);
-  const [deleteColumnModalOpened, { open: openDeleteColumnModal, close: closeDeleteColumnModal }] = useDisclosure(false);
-  const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null)
+  const lastCard = column?.items[column?.items?.length - 1];
+
+  const { data: cards, error: errorGetColumnCards } = useQuery({
+      queryKey: [boardId, column._id],
+      queryFn: () => getColumnCards({boardId, columnId: column._id, columnFilters: {}}),
+      enabled: boardId !== undefined && column._id !== undefined,
+      retry: false,
+      refetchOnWindowFocus: false
+  })
+
+    const { data: olderCards, refetch, isFetching: getColumnCardsOlderIsPending } = useQuery({
+      queryKey: ["columnCardsOlder", boardId, column?._id],
+      queryFn: () => getColumnCardsOlder({boardId, columnId: column._id, columnFilters: {}, cardId: lastCard._id}),
+      enabled: false, // Disabled by default, only fetch when triggered
+    });
+
+    const handleScroll = (event: React.UIEvent<HTMLDivElement, UIEvent>, listRef) => {
+      // console.log('im scrolling', event.scrollOffset)
+      // console.log('listRef', listRef)
+
+      // const target = event.currentTarget;
+      // const isBottom = target.scrollHeight - target.scrollTop <= target.clientHeight;
+      // if (isBottom && !getColumnCardsOlderIsPending) {
+      //     if(lastCard?._id) {
+      //         refetch()
+      //     }
+      // }
+
+      if(event?.scrollOffset === 1100) {
+        refetch()
+      }
+    };
+
+  useEffect(() => {
+    if(cards?.data) {
+        const cardsData = cards.data?.data;
+
+        columnsDispatch({type: "LIST", boardData: {
+          ...columns, 
+          columns: {
+            ...columns.columns,
+            [column._id]: {
+              ...columns?.columns[column?._id],
+              items: cardsData
+            }
+          }
+        }})
+      }
+  }, [cards])
+
+  useEffect(() => {
+    if(olderCards?.data?.data) {
+      const updatedColumns = {
+        ...columns,
+        columns: {
+          ...columns.columns,
+          [column?._id]: {
+            ...columns.columns[column?._id],
+            items: [...columns.columns[column?._id].items, ...olderCards?.data?.data]
+          }
+        }
+
+      };
+      columnsDispatch({ type: "LIST", boardData: updatedColumns });
+    }
+  }, [olderCards])
+
+  return (
+    <Draggable draggableId={column?._id} index={index}>
+      {provided => (
+        <div
+          className="column"
+          {...provided.draggableProps}
+          ref={provided.innerRef}
+        >
+          <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(column?._id) } initDeleteColumn={() => initDeleteColumn(column?._id)} />
+          <h3 className="column-title" {...provided.dragHandleProps}>
+            {column.title}
+          </h3>
+          <ItemList column={column} index={index} handleScroll={handleScroll} />
+        </div>
+      )}
+    </Draggable>
+  );
+});
+
+export const BoardPage = () => {
+  const { id: boardId } = useParams();
+  
+  const columns = useColumns()
+  const columnsDispatch = useColumnsDispatch()
   const [columnToBeDeleted, setColumnToBeDeleted] = useState<string | null>(null);
+  const [createCardModalOpened, { open: openCreateCardModal, close: closeCreateCardModal }] = useDisclosure(false);
+  const [deleteColumnModalOpened, { open: openDeleteColumnModal, close: closeDeleteColumnModal }] = useDisclosure(false);
   const [cardCreationColumnId, setCardCreationColumnId] = useState<string | null>(null)
 
   const { data: boardInfo, error: errorGetBoard } = useQuery({
@@ -38,52 +256,11 @@ export const BoardPage = () => {
     retry: false,
     refetchOnWindowFocus: false
   })
-  
-  const BOARD_NAME = boardInfo?.data?.name
-  
-  const { data: initialSelectedCard, isFetching: getCardIsFetching, error: getCardError } = useQuery({
-    queryKey: [searchParams?.get('selectedCard')],
-    queryFn: () => {
-      const cardKey = searchParams?.get('selectedCard');
-      if (boardId && cardKey) {
-        return getCard({ boardId, cardKey });
-      }
-    },
-    enabled: searchParams?.get('selectedCard') !== null,
-    retry: false,
-    refetchOnWindowFocus: false,
-  })
-
-  const handleSelectCard = (item: Card) => {
-    searchParams.set("selectedCard", item.card_key);
-    setSearchParams(searchParams)
-   }
-
-  useEffect(() => {
-    if(searchParams?.get('selectedCard') === null) {
-      closeCardModal()
-      setSelectedCard(null);
-    } else {
-      openCardModal()
-    }
-  }, [searchParams])
-
-  useEffect(() => {
-    if(initialSelectedCard?.data) {
-      setSelectedCard(initialSelectedCard.data)
-    }
-  }, [initialSelectedCard])
-
-  useEffect(() => {
-    if(getCardError) {
-      setSelectedCard(null)
-    }
-  }, [getCardError])
 
   useEffect(() => {
     if(boardInfo?.data) {
       const { data: initialBoardData } = boardInfo;
-      const boardData: BoardColumns = {};
+      let boardData: BoardColumns = {};
 
       initialBoardData?.columns?.forEach((column: { _id: string; name: string; }) => {
         boardData[column._id] = {
@@ -91,25 +268,31 @@ export const BoardPage = () => {
           items: []
         }
       })
+
+      const transformData = (data) => {
+        const columns = Object.fromEntries(
+          Object.entries(data).map(([key, value]) => [
+            key,
+            {
+              _id: key,
+              title: value.name,
+              items: value.items
+            }
+          ])
+        );
+        
+        const columnOrder = Object.keys(columns);
+        
+        return { columns, columnOrder };
+      };
+
+      boardData = transformData(boardData)
       columnsDispatch({type: "LIST", boardData})
+
+      // setState(boardData)
+
     }
   }, [boardInfo])
-
-  const form = useForm({
-    mode: 'uncontrolled',
-    initialValues: {
-        title: '',
-    },
-    validate: {
-        title: (value) => (value.length < 1 ? 'Required' : null),
-    }
-  });
-
-  const handleCloseCreateCardModal = () => {
-    form.reset();
-    closeCreateCardModal()
-    setCardCreationColumnId(null)
-  }
 
   const { mutate: updateColumnOrderMutate} = useMutation({
     mutationFn: updateColumnOrder,
@@ -119,8 +302,7 @@ export const BoardPage = () => {
   });
 
   const handleUpdateColumnOrder = (reorderedColumns: BoardColumns) => {
-    const columns = Object.keys(reorderedColumns);
-    updateColumnOrderMutate({ boardId, columnOrder: columns });
+    updateColumnOrderMutate({ boardId, columnOrder: reorderedColumns });
   }
 
   const { mutate: updateCardLocationMutate } = useMutation({
@@ -131,65 +313,103 @@ export const BoardPage = () => {
     }
   });
 
-  const { mutate: createCardMutate, isPending: createCardIsPending } = useMutation({
-    mutationFn: createCard,
-    onSuccess: (response, variable) => {
-      handleCloseCreateCardModal();
-      const updatedColumns = { 
-        ...columns, 
-        [variable.columnId]: {
-           ...columns[variable.columnId], 
-          items: [{
-            column_id: variable.columnId,
-            ...response.data.data
-          }, 
-          ...columns[variable.columnId].items] 
-        } 
-      };
-      columnsDispatch({type: "LIST", boardData: updatedColumns})
-    },
-    onError: (error: AxiosError) => {   
-      console.log("Error creating card", error);
-      errorHandler(error)
+  function onDragEnd(result) {
+    if (!result.destination) {
+      return;
     }
-  });
 
-  const handleCreateCard = ({title}: {title: string}) => {
-    if (boardId && cardCreationColumnId) {
-      createCardMutate({ boardId, columnId: cardCreationColumnId, title });
+    if (result.type === "column") {
+      // if the list is scrolled it looks like there is some strangeness going on
+      // with react-window. It looks to be scrolling back to scroll: 0
+      // I should log an issue with the project
+      const columnOrder = reorderList(
+        columns.columnOrder,
+        result.source.index,
+        result.destination.index
+      );
+      
+      columnsDispatch({type: "LIST", boardData: {
+        ...columns,
+        columnOrder
+      }})
+
+      handleUpdateColumnOrder(columnOrder);
+      return;
     }
-  }
 
-  const { mutate: deleteCardMutate, isPending: deleteCardIsPending } = useMutation({
-    mutationFn: deleteCard,
-    onSuccess: (_, variable) => {
-        let updatedColumns = { ...columns }
-        if(variable?.columnId) {
-            updatedColumns[variable?.columnId] = {
-                ...updatedColumns[variable?.columnId],
-                items: updatedColumns[variable?.columnId]?.items.filter((card) => card._id != variable?.cardId)
-            }
-            columnsDispatch({type: "LIST", boardData: updatedColumns})
+    // reordering in same list
+    if (result.source.droppableId === result.destination.droppableId) {
+      const column = columns.columns[result.source.droppableId];
+      const items = reorderList(
+        column.items,
+        result.source.index,
+        result.destination.index
+      );
+
+      // updating column entry
+      const newState = {
+        ...columns,
+        columns: {
+          ...columns.columns,
+          [column._id]: {
+            ...column,
+            items
+          }
         }
-        closeDeleteCardModal()
-        handleCloseCardModal()
-    },
-    onError: (error: AxiosError) => {   
-      console.log("Error deleting card", error);
-      errorHandler(error)
-    },
-  });
+      };
+      columnsDispatch({type: "LIST", boardData: newState})
 
-  const initCreateCard = (columnId: string) => {
-    setCardCreationColumnId(columnId)
-    openCreateCardModal()
-  }
+      if (result?.source?.droppableId && result?.destination?.droppableId) {
+        updateCardLocationMutate({ 
+          boardId, 
+          sourceColumnId: result.source.droppableId, 
+          destinationColumnId: result.destination.droppableId, 
+          destinationIndex: result.destination.index, 
+          cardId: result.draggableId 
+        });
+      }
+      return;
+    }
 
-  const initDeleteCard = () => openDeleteCardModal();
-  
-  const handleDeleteCard = ({columnId, cardId} : { columnId?: string, cardId?: string}) => {
-    if (boardId && columnId && cardId) {
-      deleteCardMutate({ boardId, columnId, cardId });
+    // moving between lists
+    const sourceColumn = columns.columns[result.source.droppableId];
+    const destinationColumn = columns.columns[result.destination.droppableId];
+    const item = sourceColumn.items[result.source.index];
+
+    // 1. remove item from source column
+    const newSourceColumn = {
+      ...sourceColumn,
+      items: [...sourceColumn.items]
+    };
+    newSourceColumn.items.splice(result.source.index, 1);
+
+    // 2. insert into destination column
+    const newDestinationColumn = {
+      ...destinationColumn,
+      items: [...destinationColumn.items]
+    };
+    // in line modification of items
+    newDestinationColumn.items.splice(result.destination.index, 0, item);
+
+    const newState = {
+      ...columns,
+      columns: {
+        ...columns.columns,
+        [newSourceColumn._id]: newSourceColumn,
+        [newDestinationColumn._id]: newDestinationColumn
+      }
+    };
+
+    columnsDispatch({type: "LIST", boardData: newState})
+
+    if (result?.source?.droppableId && result?.destination?.droppableId) {
+      updateCardLocationMutate({ 
+        boardId, 
+        sourceColumnId: result.source.droppableId, 
+        destinationColumnId: result.destination.droppableId, 
+        destinationIndex: result.destination.index, 
+        cardId: result.draggableId 
+      });
     }
   }
 
@@ -197,11 +417,14 @@ export const BoardPage = () => {
     mutationFn: createColumn,
     onSuccess: (response, variable) => {
       const updatedColumns = { 
-        ...columns, 
-        [response.data._id]: {
-          name: response.data.name,
-          items: [], 
-        } 
+        columnOrder: [...columns?.columnOrder, response.data._id],
+        columns: {
+          ...columns.columns,
+          [response.data._id]: {
+            title: response.data.name,
+            items: [], 
+          } 
+        }
       };
       columnsDispatch({type: "LIST", boardData: updatedColumns})
       variable.onSuccess()
@@ -222,7 +445,11 @@ export const BoardPage = () => {
     mutationFn: deleteColumn,
     onSuccess: (_response, variable) => {
         if(variable?.columnId) {
-          const { [variable?.columnId]: toRemove, ...updatedColumns } = columns; 
+          const { [variable?.columnId]: toRemove, ...rest } = columns.columns; 
+          const updatedColumns = { 
+            columnOrder: columns?.columnOrder?.filter((columnId) => columnId != variable?.columnId),
+            columns: { ...rest }
+          };
           columnsDispatch({type: "LIST", boardData: updatedColumns})
         }
         handleCloseDeleteColumnModal()
@@ -249,179 +476,92 @@ export const BoardPage = () => {
     openDeleteColumnModal();
   }
 
-  const onDragEnd = (result: DropResult) => {
-    const { source, destination, type } = result;
-    const sourceColumnId = source?.droppableId
-    const destinationColumnId = destination?.droppableId
-
-    if (!destination) return;
-
-    if (type === "COLUMN") {
-      // Handle column drag
-      const columnOrder = Object.entries(columns);
-      const [movedColumn] = columnOrder.splice(source.index, 1);
-      columnOrder.splice(destination.index, 0, movedColumn);
-
-      const reorderedColumns = Object.fromEntries(columnOrder);
-      columnsDispatch({type: "LIST", boardData: reorderedColumns})
-
-      //prevent from making api call if the order is the same
-      if(JSON.stringify(columns) === JSON.stringify(reorderedColumns)) return;
-      handleUpdateColumnOrder(reorderedColumns);
-    } else {
-      // Handle item drag
-      const sourceColumn = columns[source.droppableId];
-      const destinationColumn = columns[destination.droppableId];
-
-      const sourceItems = [...sourceColumn.items];
-      const destinationItems = [...destinationColumn.items];
-
-      const [movedItem] = sourceItems.splice(source.index, 1);
-
-      if (source.droppableId === destination.droppableId) {
-        if (source.index === destination.index) return; // Prevent unnecessary API call
-        
-        // Same column
-        sourceItems.splice(destination.index, 0, movedItem);
-        const updatedColumns = {
-          ...columns,
-          [source.droppableId]: {
-            ...sourceColumn,
-            items: sourceItems,
-          },
-        }
-
-        columnsDispatch({type: "LIST", boardData: updatedColumns})
-
-        if (sourceColumnId && destinationColumnId) {
-          updateCardLocationMutate({ boardId, sourceColumnId, destinationColumnId, destinationIndex: destination.index, cardId: movedItem._id });
-        }
-      } else {
-        // Different columns
-        destinationItems.splice(destination.index, 0, movedItem);
-
-        const updatedColumns = {
-          ...columns,
-          [source.droppableId]: {
-            ...sourceColumn,
-            items: sourceItems,
-          },
-          [destination.droppableId]: {
-            ...destinationColumn,
-            items: destinationItems,
-          },
-        }
-
-        columnsDispatch({type: "LIST", boardData: updatedColumns})
-        
-        if (sourceColumnId && destinationColumnId) {
-          updateCardLocationMutate({ boardId, sourceColumnId, destinationColumnId, destinationIndex: destination.index, cardId: movedItem._id});
-        }
-      }
-    }
-  };
-
-  const handleCloseCardModal = () => {
-    searchParams.delete("selectedCard"); // Remove 'selectedCard' from the URL
-    setSearchParams(searchParams);
-
-    closeCardModal()
-    setSelectedCard(null);
-  }
-
-  const handleUpdateCard = ({payload, onSuccess}: {payload: UpdateCardPayload, onSuccess: () => void; }) => {
-    if (boardId && payload?.column_id && payload?._id) {
-      updateCardMutate({boardId, columnId: payload.column_id, cardId: payload._id, payload, onSuccess});
-    }
-  }
-
-  const { mutate: updateCardMutate, isPending: updateCardIsPending } = useMutation({
-    mutationFn: updateCard,
-    onSuccess: (_, variable) => {
-      const updatedCard = variable.payload;
-      let updatedColumns = { ...columns }
-      if(updatedCard.column_id) {
-          updatedColumns[updatedCard.column_id] = {
-              ...updatedColumns[updatedCard.column_id],
-              items: updatedColumns[updatedCard.column_id]?.items.map((card) => {
-                if(card._id === updatedCard._id) {
-                  return {
-                    ...card,
-                    title: updatedCard.title ?? '',
-                    content: updatedCard.content,
-                    formatted_content: updatedCard.formatted_content,
-                    priority: updatedCard.priority,
-                    due_date: updatedCard.due_date
-                  }
-                }
-                return {...card}
-              })
-          }
-
-          setSelectedCard((prev) => prev ? ({
-            ...prev,
-            ...variable.payload
-          }) : prev)
-          
-          columnsDispatch({type: "LIST", boardData: updatedColumns})
-      }
-      variable.onSuccess()
+  const form = useForm({
+    mode: 'uncontrolled',
+    initialValues: {
+        title: '',
     },
-    onError: (error) => {   
-      console.log("Error updating card", error);
+    validate: {
+        title: (value) => (value.length < 1 ? 'Required' : null),
     }
   });
 
-  if(errorGetBoard) {
-    return (
-      <BoardNotFound />
-    )
+  const handleCloseCreateCardModal = () => {
+    form.reset();
+    closeCreateCardModal()
+    setCardCreationColumnId(null)
+  }
+
+  const initCreateCard = (columnId: string) => {
+    setCardCreationColumnId(columnId)
+    openCreateCardModal()
+  }
+
+  const { mutate: createCardMutate, isPending: createCardIsPending } = useMutation({
+    mutationFn: createCard,
+    onSuccess: (response, variable) => {
+      handleCloseCreateCardModal();
+      const updatedColumns = { 
+        ...columns, 
+        columns: {
+          ...columns.columns,
+          [variable.columnId]: {
+            ...columns.columns[variable.columnId], 
+           items: [{
+              column_id: variable.columnId,
+              ...response.data.data
+            }, 
+            ...columns.columns[variable.columnId].items
+          ] 
+         } 
+        }
+      };
+      columnsDispatch({type: "LIST", boardData: updatedColumns})
+    },
+    onError: (error: AxiosError) => {   
+      console.log("Error creating card", error);
+      errorHandler(error)
+    }
+  });
+
+  const handleCreateCard = ({title}: {title: string}) => {
+    if (boardId && cardCreationColumnId) {
+      createCardMutate({ boardId, columnId: cardCreationColumnId, title });
+    }
   }
 
   return (
-    <div style={styles.boardStyle as React.CSSProperties} id="board-container">
-      <Head title={BOARD_NAME} />
-      <div>
-        <BoardFilter />
-        <Space h="xs" />
-        <div style={{display:"flex", columnGap: 8}}>
-          <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="columns" direction="horizontal" type="COLUMN">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  style={styles.containerStyle as React.CSSProperties}
-                >
-                  {Object.entries(columns).map(([columnId], index) => (
-                    <BoardColumn key={columnId} boardId={boardId} columnId={columnId} index={index} initCreateCard={initCreateCard} initDeleteColumn={initDeleteColumn} handleSelectCard={handleSelectCard} />
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
-          <CreateColumn handleCreateColumn={handleCreateColumn} createColumnIsPending={createColumnIsPending} />
+    <div>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="app">
+          <Droppable
+            droppableId="all-droppables"
+            direction="horizontal"
+            type="column"
+          >
+            {provided => (
+              <div
+                className="columns"
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+              >
+                {columns?.columnOrder?.map((columnId, index) => (
+                  <Column
+                    key={columnId}
+                    column={columns.columns[columnId]}
+                    index={index}
+                    initCreateCard={initCreateCard}
+                    initDeleteColumn={initDeleteColumn} 
+                  />
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
         </div>
-      </div>
+      </DragDropContext>
+      <CreateColumn handleCreateColumn={handleCreateColumn} createColumnIsPending={createColumnIsPending} />
       <NewCardModal form={form} opened={createCardModalOpened} close={handleCloseCreateCardModal} handleCreateCard={handleCreateCard} createCardIsPending={createCardIsPending} />
-      <CardModal 
-        opened={cardModalOpened} 
-        close={handleCloseCardModal} 
-        selectedCard={selectedCard} 
-        boardName={BOARD_NAME} 
-        initDeleteCard={initDeleteCard} 
-        handleUpdateCard={handleUpdateCard}
-        updateCardIsPending={updateCardIsPending}
-        getCardIsFetching={getCardIsFetching}
-      />
-      <DeleteCardModal 
-        opened={deleteCardModalOpened}
-        close={closeDeleteCardModal}
-        selectedCard={selectedCard}
-        handleDeleteCard={handleDeleteCard}
-        deleteCardIsPending={deleteCardIsPending}
-      />
       <DeleteColumnModal 
         opened={deleteColumnModalOpened}
         close={handleCloseDeleteColumnModal}
@@ -430,4 +570,4 @@ export const BoardPage = () => {
       />
     </div>
   );
-};
+}
