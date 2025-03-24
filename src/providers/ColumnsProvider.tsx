@@ -76,5 +76,15 @@ const columnsReducer = (state: BoardColumns, action: ColumnsAction): BoardColumn
       return {
         ...action.boardData
       };
-  }
+    case 'INITIAL_LOAD':
+      return {
+        ...state,
+        columns: {
+          ...state.columns,
+          ...action.column
+        }
+      };
+    case 'RESET':
+      return { };
+   }
 };

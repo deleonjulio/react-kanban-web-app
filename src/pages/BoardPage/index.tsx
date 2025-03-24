@@ -1,9 +1,8 @@
 // @flow
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
-import { FixedSizeList, areEqual } from "react-window";
+import { FixedSizeList, areEqual, VariableSizeList } from "react-window";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import "./style.css";
-
 import { useParams, useSearchParams } from "react-router-dom";
 import { Space } from "@mantine/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -58,6 +57,8 @@ function getStyle({ draggableStyle, virtualStyle, isDragging }) {
 }
 
 function Item({ provided, item, style, isDragging }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   return (
     <div
       {...provided.draggableProps}
@@ -69,9 +70,12 @@ function Item({ provided, item, style, isDragging }) {
         isDragging
       })}
       className={`item ${isDragging ? "is-dragging" : ""}`}
-      onClick={() => console.log('this is it')}
+      onClick={() => {
+        searchParams.set("selectedCard", item.card_key);
+        setSearchParams(searchParams)
+      }}
     >
-      {item.card_key}
+      {item.title}
     </div>
   );
 }
@@ -94,19 +98,26 @@ const Row = React.memo(function Row(props) {
   );
 }, areEqual);
 
-const ItemList = React.memo(function ItemList({ column, index, handleScroll }) {
+const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
   // There is an issue I have noticed with react-window that when reordered
   // react-window sets the scroll back to 0 but does not update the UI
   // I should raise an issue for this.
   // As a work around I am resetting the scroll to 0
   // on any list that changes it's index
   const listRef = useRef();
+  const hasMountedRef = useRef();
+
   useLayoutEffect(() => {
-    const list = listRef.current;
-    if (list) {
-      list.scrollTo(0);
-    }
+    // const list = listRef.current;
+    // if (list) {
+    //   list.scrollTo(0);
+    // }
   }, [index]);
+
+  // const rowHeights = column.items.map((values) => (values.title.length) );
+  // const getItemSize = index => {
+  //   return rowHeights[index];
+  // }
 
   return (
     <Droppable
@@ -129,19 +140,34 @@ const ItemList = React.memo(function ItemList({ column, index, handleScroll }) {
           : column.items.length;
 
         return (
-          <FixedSizeList
-            onScroll={(e) => handleScroll(e, listRef)}
+          <FixedSizeList 
             height={500}
             itemCount={itemCount}
             itemSize={80}
             width={300}
-            outerRef={provided.innerRef}
             itemData={column.items}
             className="task-list"
-            ref={listRef}
+            outerRef={provided.innerRef}
+            innerRef={listRef}
+            ref={hasMountedRef}
+            onScroll={(event) => {
+              if (!hasMountedRef.current) {
+                hasMountedRef.current = true;
+                return;
+              }
+          
+              if (!listRef.current) {
+                return;
+              }
+              
+              console.log(provided.innerRef)
+              // if (event.scrollOffset + listRef.current.offsetHeight === listRef.current.scrollHeight) {
+              //   loadMore()
+              // }
+            }}
           >
             {Row}
-          </FixedSizeList>
+          </FixedSizeList >
         );
       }}
     </Droppable>
@@ -160,44 +186,24 @@ const Column = React.memo(function Column({ column, index, initCreateCard, initD
       queryFn: () => getColumnCards({boardId, columnId: column._id, columnFilters: {}}),
       enabled: boardId !== undefined && column._id !== undefined,
       retry: false,
-      refetchOnWindowFocus: false
+      refetchOnWindowFocus: false,
   })
 
-    const { data: olderCards, refetch, isFetching: getColumnCardsOlderIsPending } = useQuery({
-      queryKey: ["columnCardsOlder", boardId, column?._id],
-      queryFn: () => getColumnCardsOlder({boardId, columnId: column._id, columnFilters: {}, cardId: lastCard._id}),
-      enabled: false, // Disabled by default, only fetch when triggered
-    });
+  const { data: olderCards, refetch, isFetching: getColumnCardsOlderIsPending } = useQuery({
+    queryKey: ["columnCardsOlder", boardId, column?._id],
+    queryFn: () => getColumnCardsOlder({boardId, columnId: column._id, columnFilters: {}, cardId: lastCard._id}),
+    enabled: false, // Disabled by default, only fetch when triggered
+  });
 
-    const handleScroll = (event: React.UIEvent<HTMLDivElement, UIEvent>, listRef) => {
-      // console.log('im scrolling', event.scrollOffset)
-      // console.log('listRef', listRef)
-
-      // const target = event.currentTarget;
-      // const isBottom = target.scrollHeight - target.scrollTop <= target.clientHeight;
-      // if (isBottom && !getColumnCardsOlderIsPending) {
-      //     if(lastCard?._id) {
-      //         refetch()
-      //     }
-      // }
-
-      if(event?.scrollOffset === 1100) {
-        refetch()
-      }
-    };
+  const loadMore = () => refetch()
 
   useEffect(() => {
     if(cards?.data) {
         const cardsData = cards.data?.data;
-
-        columnsDispatch({type: "LIST", boardData: {
-          ...columns, 
-          columns: {
-            ...columns.columns,
-            [column._id]: {
-              ...columns?.columns[column?._id],
-              items: cardsData
-            }
+        columnsDispatch({type: "INITIAL_LOAD", column: {
+          [column._id]: {
+            ...columns?.columns[column?._id],
+            items: cardsData
           }
         }})
       }
@@ -214,7 +220,6 @@ const Column = React.memo(function Column({ column, index, initCreateCard, initD
             items: [...columns.columns[column?._id].items, ...olderCards?.data?.data]
           }
         }
-
       };
       columnsDispatch({ type: "LIST", boardData: updatedColumns });
     }
@@ -232,7 +237,7 @@ const Column = React.memo(function Column({ column, index, initCreateCard, initD
           <h3 className="column-title" {...provided.dragHandleProps}>
             {column.title}
           </h3>
-          <ItemList column={column} index={index} handleScroll={handleScroll} />
+          <ItemList column={column} index={index} loadMore={loadMore} />
         </div>
       )}
     </Draggable>
@@ -242,11 +247,18 @@ const Column = React.memo(function Column({ column, index, initCreateCard, initD
 export const BoardPage = () => {
   const { id: boardId } = useParams();
   
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const columns = useColumns()
   const columnsDispatch = useColumnsDispatch()
+
   const [columnToBeDeleted, setColumnToBeDeleted] = useState<string | null>(null);
+  const [selectedCard, setSelectedCard] = useState<SelectedCard | null>(null)
+
   const [createCardModalOpened, { open: openCreateCardModal, close: closeCreateCardModal }] = useDisclosure(false);
   const [deleteColumnModalOpened, { open: openDeleteColumnModal, close: closeDeleteColumnModal }] = useDisclosure(false);
+  const [deleteCardModalOpened, { open: openDeleteCardModal, close: closeDeleteCardModal }] = useDisclosure(false);
+  const [cardModalOpened, { open: openCardModal, close: closeCardModal }] = useDisclosure(false);
   const [cardCreationColumnId, setCardCreationColumnId] = useState<string | null>(null)
 
   const { data: boardInfo, error: errorGetBoard } = useQuery({
@@ -256,6 +268,8 @@ export const BoardPage = () => {
     retry: false,
     refetchOnWindowFocus: false
   })
+
+  const BOARD_NAME = boardInfo?.data?.name
 
   useEffect(() => {
     if(boardInfo?.data) {
@@ -421,6 +435,7 @@ export const BoardPage = () => {
         columns: {
           ...columns.columns,
           [response.data._id]: {
+            _id: response.data._id,
             title: response.data.name,
             items: [], 
           } 
@@ -530,6 +545,139 @@ export const BoardPage = () => {
     }
   }
 
+  const { data: initialSelectedCard, isFetching: getCardIsFetching, error: getCardError } = useQuery({
+    queryKey: [searchParams?.get('selectedCard')],
+    queryFn: () => {
+      const cardKey = searchParams?.get('selectedCard');
+      if (boardId && cardKey) {
+        return getCard({ boardId, cardKey });
+      }
+    },
+    enabled: searchParams?.get('selectedCard') !== null,
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+
+  useEffect(() => {
+    if(searchParams?.get('selectedCard') === null) {
+      closeCardModal()
+      setSelectedCard(null);
+    } else {
+      openCardModal()
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    if(initialSelectedCard?.data) {
+      setSelectedCard(initialSelectedCard.data)
+    }
+  }, [initialSelectedCard])
+
+  const handleCloseCardModal = () => {
+    searchParams.delete("selectedCard");
+    setSearchParams(searchParams);
+
+    closeCardModal()
+    setSelectedCard(null);
+  }
+
+  const { mutate: deleteCardMutate, isPending: deleteCardIsPending } = useMutation({
+    mutationFn: deleteCard,
+    onSuccess: (_, variable) => {
+        if(variable?.columnId) {
+          let updatedColumns = {
+            ...columns,
+            columns: {
+              ...columns.columns,
+              [variable?.columnId]: {
+                ...columns.columns[variable?.columnId],
+                items: [...columns.columns[variable?.columnId]?.items.filter((card) => card._id != variable?.cardId)]
+              }
+            }
+          }
+          
+          columnsDispatch({type: "LIST", boardData: updatedColumns})
+        }
+        closeDeleteCardModal()
+        handleCloseCardModal()
+    },
+    onError: (error: AxiosError) => {   
+      console.log("Error deleting card", error);
+      errorHandler(error)
+    },
+  });
+
+  const initDeleteCard = () => openDeleteCardModal();
+
+  const handleDeleteCard = ({columnId, cardId} : { columnId?: string, cardId?: string}) => {
+    if (boardId && columnId && cardId) {
+      deleteCardMutate({ boardId, columnId, cardId });
+    }
+  }
+
+  const handleUpdateCard = ({payload, onSuccess}: {payload: UpdateCardPayload, onSuccess: () => void; }) => {
+    if (boardId && payload?.column_id && payload?._id) {
+      updateCardMutate({boardId, columnId: payload.column_id, cardId: payload._id, payload, onSuccess});
+    }
+  }
+
+  const { mutate: updateCardMutate, isPending: updateCardIsPending } = useMutation({
+    mutationFn: updateCard,
+    onSuccess: (_, variable) => {
+      const updatedCard = variable.payload;
+
+      if(updatedCard.column_id) {
+        let updatedColumns = {
+          ...columns,
+          columns: {
+            ...columns.columns,
+            [updatedCard?.column_id]: {
+              ...columns.columns[updatedCard?.column_id],
+              items: [...columns.columns[updatedCard.column_id]?.items.map((card) => {
+                if(card._id === updatedCard._id) {
+                  return {
+                    ...card,
+                    title: updatedCard.title ?? '',
+                    content: updatedCard.content,
+                    formatted_content: updatedCard.formatted_content,
+                    priority: updatedCard.priority,
+                    due_date: updatedCard.due_date
+                  }
+                }
+                return {...card}
+              })]
+            }
+          }
+        }
+
+        setSelectedCard((prev) => prev ? ({
+          ...prev,
+          ...variable.payload
+        }) : prev)
+        
+        columnsDispatch({type: "LIST", boardData: updatedColumns})
+      }
+
+      variable.onSuccess()
+    },
+    onError: (error) => {   
+      console.log("Error updating card", error);
+    }
+  });
+
+  useEffect(() => {
+    
+    return () => {
+      columnsDispatch({type: "RESET"})
+    }
+  }, [])
+
+  if(errorGetBoard) {
+    return (
+      <BoardNotFound />
+    )
+  }
+
   return (
     <div>
       <DragDropContext onDragEnd={onDragEnd}>
@@ -567,6 +715,23 @@ export const BoardPage = () => {
         close={handleCloseDeleteColumnModal}
         handleDeleteColumn={handleDeleteColumn}
         deleteColumnIsPending={deleteColumnIsPending}
+      />
+      <CardModal 
+        opened={cardModalOpened} 
+        close={handleCloseCardModal} 
+        selectedCard={selectedCard} 
+        boardName={BOARD_NAME}
+        initDeleteCard={initDeleteCard} 
+        handleUpdateCard={handleUpdateCard}
+        updateCardIsPending={updateCardIsPending}
+        getCardIsFetching={getCardIsFetching} 
+      />
+      <DeleteCardModal 
+        opened={deleteCardModalOpened}
+        close={closeDeleteCardModal}
+        selectedCard={selectedCard}
+        handleDeleteCard={handleDeleteCard}
+        deleteCardIsPending={deleteCardIsPending}
       />
     </div>
   );
