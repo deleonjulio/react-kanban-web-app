@@ -36,7 +36,7 @@ function getStyle({ draggableStyle, virtualStyle, isDragging }) {
   // between the row items
   const combined = {
     ...virtualStyle,
-    ...draggableStyle
+    ...draggableStyle,
   };
 
   // Being lazy: this is defined in our css file
@@ -50,7 +50,8 @@ function getStyle({ draggableStyle, virtualStyle, isDragging }) {
     width: isDragging
       ? draggableStyle.width
       : `calc(${combined.width} - ${grid * 2}px)`,
-    marginBottom: grid
+    marginBottom: grid,
+    ...styles.itemStyle
   };
 
   return result;
@@ -160,10 +161,11 @@ const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
                 return;
               }
               
-              console.log(provided.innerRef)
-              // if (event.scrollOffset + listRef.current.offsetHeight === listRef.current.scrollHeight) {
-              //   loadMore()
-              // }
+              const totalHeight = itemCount * 80; 
+
+              if (hasMountedRef.current.props.height + event.scrollOffset  === totalHeight) {
+                loadMore()
+              }
             }}
           >
             {Row}

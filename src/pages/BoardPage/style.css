@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css?family=Vibur&display=swap");
+/* @import url("https://fonts.googleapis.com/css?family=Vibur&display=swap"); */
 
 :root {
   --grid: 8px;
@@ -11,9 +11,9 @@
 }
 
 body {
-  background: var(--black);
+  /* background: var(--black);
   font-family: "Vibur", cursive;
-  user-select: none;
+  user-select: none; */
 }
 
 *,
@@ -22,9 +22,9 @@ body {
   box-sizing: border-box;
 }
 .app {
-  display: flex;
+  /* display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: center; */
 }
 
 .columns {
@@ -55,9 +55,9 @@ body {
 .task-list {
   /* this has no visible impact, but is in line with the absolute position spacing.
   doing this ensures that dropping into an empty list will be in the correct visual position */
-  padding-left: var(--grid);
+  /* padding-left: var(--grid);
   padding-right: var(--grid);
-  scrollbar-color: dark;
+  scrollbar-color: dark; */
 }
 
 .task-list::-webkit-scrollbar {
@@ -74,7 +74,7 @@ body {
 }
 
 .item {
-  background: #333851;
+  /* background: #333851;
   border: var(--borderWidth) solid mediumpurple;
   box-sizing: border-box;
   border-radius: var(--borderRadius);
@@ -82,10 +82,9 @@ body {
   font-size: 30px;
   user-select: none;
 
-  /* center align text */
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: center; */
 }
 
 .item.is-dragging {
