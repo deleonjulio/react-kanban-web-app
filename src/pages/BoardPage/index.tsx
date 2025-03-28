@@ -4,12 +4,12 @@ import { FixedSizeList, areEqual, VariableSizeList } from "react-window";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import "./style.css";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Space } from "@mantine/core";
+import { Space, Paper, Text, Group, Avatar } from "@mantine/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getBoard, updateColumnOrder, createCard, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn, getColumnCardsOlder } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
-import { NewCardModal, CardModal, DeleteCardModal, BoardNotFound, DeleteColumnModal, CreateColumn, BoardFilter, BoardColumn } from "./components";
+import { NewCardModal, CardModal, DeleteCardModal, BoardNotFound, DeleteColumnModal, CreateColumn, BoardFilter, BoardColumn, PriorityBadge} from "./components";
 import { Head } from "../../components";
 import type { SelectedCard, UpdateCardPayload } from "../../types";
 import { styles } from "./style";
@@ -18,8 +18,11 @@ import { AxiosError } from "axios";
 import { useColumns, useColumnsDispatch } from "../../providers/ColumnsProvider";
 import { BoardColumns, Card } from "../../providers/ColumnsProvider";
 import { ColumnHeader } from "./components";
+import dayjs from "dayjs";
 
 import { getColumnCards } from "../../apis";
+
+const CURRENT_DATE = dayjs();
 
 function reorderList(list, startIndex, endIndex) {
   const result = Array.from(list);
@@ -51,6 +54,7 @@ function getStyle({ draggableStyle, virtualStyle, isDragging }) {
       ? draggableStyle.width
       : `calc(${combined.width} - ${grid * 2}px)`,
     marginBottom: grid,
+    overflow: "scroll",
     ...styles.itemStyle
   };
 
@@ -61,7 +65,8 @@ function Item({ provided, item, style, isDragging }) {
   const [searchParams, setSearchParams] = useSearchParams();
 
   return (
-    <div
+    <Paper
+      bd="0.5px gray solid"
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       ref={provided.innerRef}
@@ -76,8 +81,22 @@ function Item({ provided, item, style, isDragging }) {
         setSearchParams(searchParams)
       }}
     >
-      {item.title}
+    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+      <div  style={{display:"flex", columnGap: 4}}>
+        <Text fw={900} size="xs" c="gray.7">{item?.card_key}</Text>
+        <PriorityBadge priority={item?.priority} size="xs" />
+      </div>
+      <Avatar size="sm" name="JULIO" color="initials" />
     </div>
+    <Group gap="xs" justify="space-between">
+      <Text size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>
+        {item.due_date && dayjs(item.due_date).format('MMM. DD, YYYY')}
+      </Text>
+    </Group>
+    <Text size="sm">
+      {item.title}
+    </Text>
+    </Paper>
   );
 }
 
@@ -144,7 +163,7 @@ const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
           <FixedSizeList 
             height={500}
             itemCount={itemCount}
-            itemSize={80}
+            itemSize={120}
             width={300}
             itemData={column.items}
             className="task-list"
@@ -161,7 +180,7 @@ const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
                 return;
               }
               
-              const totalHeight = itemCount * 80; 
+              const totalHeight = itemCount * 120; 
 
               if (hasMountedRef.current.props.height + event.scrollOffset  === totalHeight) {
                 loadMore()
@@ -235,10 +254,12 @@ const Column = React.memo(function Column({ column, index, initCreateCard, initD
           {...provided.draggableProps}
           ref={provided.innerRef}
         >
-          <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(column?._id) } initDeleteColumn={() => initDeleteColumn(column?._id)} />
-          <h3 className="column-title" {...provided.dragHandleProps}>
-            {column.title}
-          </h3>
+          <div {...provided.dragHandleProps} style={{paddingLeft: 16, paddingRight: 16, display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+            <h3 className="column-title">
+              {column.title}
+            </h3>
+            <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(column?._id) } initDeleteColumn={() => initDeleteColumn(column?._id)} />
+          </div>
           <ItemList column={column} index={index} loadMore={loadMore} />
         </div>
       )}
