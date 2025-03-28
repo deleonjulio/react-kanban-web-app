@@ -54,11 +54,29 @@ function getStyle({ draggableStyle, virtualStyle, isDragging }) {
       ? draggableStyle.width
       : `calc(${combined.width} - ${grid * 2}px)`,
     marginBottom: grid,
-    overflow: "scroll",
     ...styles.itemStyle
   };
 
   return result;
+}
+
+function calculateHeight(text, width = 300, fontSize = 13) {
+  const uppercaseCount = (text.match(/[A-Z]/g) || []).length;
+  const lowercaseCount = (text.match(/[a-z]/g) || []).length;
+  const numberCount = (text.match(/[0-9]/g) || []).length;
+  const totalLength = text.length;
+
+  if (totalLength === 0) return 0; // No text, no height
+
+  // Weighted average character width based on text composition
+  const avgCharWidth =
+      ((uppercaseCount * 0.65 + lowercaseCount * 0.54 + numberCount * 0.6) / totalLength) * fontSize;
+
+  const lineHeight = fontSize * 1.5;
+  const charsPerLine = Math.floor(width / avgCharWidth);
+  const totalLines = Math.ceil(totalLength / charsPerLine);
+
+  return totalLines * lineHeight;
 }
 
 function Item({ provided, item, style, isDragging }) {
@@ -81,21 +99,19 @@ function Item({ provided, item, style, isDragging }) {
         setSearchParams(searchParams)
       }}
     >
-    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-      <div  style={{display:"flex", columnGap: 4}}>
-        <Text fw={900} size="xs" c="gray.7">{item?.card_key}</Text>
-        <PriorityBadge priority={item?.priority} size="xs" />
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+          <Text fw={900} size="xs" c="gray.7">{item?.card_key}</Text>
+          <div style={{display:"flex", gap: 4, alignItems: "center"}}>       
+            <Text size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>
+              {item.due_date && dayjs(item.due_date).format('MMM. DD, YYYY')}
+            </Text>
+            {item?.priority && <PriorityBadge priority={item?.priority} size="xs" />}
+            <Avatar size="sm" name="JULIO" color="initials" />   
+          </div>
       </div>
-      <Avatar size="sm" name="JULIO" color="initials" />
-    </div>
-    <Group gap="xs" justify="space-between">
-      <Text size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>
-        {item.due_date && dayjs(item.due_date).format('MMM. DD, YYYY')}
+      <Text style={{fontSize: 12}}>
+          {item.title}
       </Text>
-    </Group>
-    <Text size="sm">
-      {item.title}
-    </Text>
     </Paper>
   );
 }
@@ -127,17 +143,27 @@ const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
   const listRef = useRef();
   const hasMountedRef = useRef();
 
-  useLayoutEffect(() => {
-    // const list = listRef.current;
-    // if (list) {
-    //   list.scrollTo(0);
-    // }
-  }, [index]);
+  const rowHeights = column.items.map((item) => {
+    let height = 75
+    height += calculateHeight(item?.title)
+    return height
+  });
 
-  // const rowHeights = column.items.map((values) => (values.title.length) );
-  // const getItemSize = index => {
-  //   return rowHeights[index];
-  // }
+  const getItemSize = index => {
+    return rowHeights[index];
+  }
+
+  useEffect(() => {
+    if(hasMountedRef.current) {
+      hasMountedRef.current?.resetAfterIndex(0)
+    }
+  }, [column])
+
+  let totalHeight = 0
+
+  rowHeights.forEach(i => {
+    totalHeight += i
+  })
 
   return (
     <Droppable
@@ -160,10 +186,10 @@ const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
           : column.items.length;
 
         return (
-          <FixedSizeList 
-            height={500}
+          <VariableSizeList 
+            height={700}
             itemCount={itemCount}
-            itemSize={120}
+            itemSize={getItemSize}
             width={300}
             itemData={column.items}
             className="task-list"
@@ -179,16 +205,15 @@ const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
               if (!listRef.current) {
                 return;
               }
-              
-              const totalHeight = itemCount * 120; 
 
-              if (hasMountedRef.current.props.height + event.scrollOffset  === totalHeight) {
+              console.log(hasMountedRef.current.props.height + event.scrollOffset, totalHeight)
+              if (hasMountedRef.current.props.height + event.scrollOffset >= totalHeight) {
                 loadMore()
               }
             }}
           >
             {Row}
-          </FixedSizeList >
+          </VariableSizeList >
         );
       }}
     </Droppable>
@@ -689,7 +714,6 @@ export const BoardPage = () => {
   });
 
   useEffect(() => {
-    
     return () => {
       columnsDispatch({type: "RESET"})
     }
