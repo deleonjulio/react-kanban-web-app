@@ -1,10 +1,10 @@
 // @flow
-import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
-import { FixedSizeList, areEqual, VariableSizeList } from "react-window";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { areEqual, VariableSizeList } from "react-window";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import "./style.css";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Space, Paper, Text, Group, Avatar } from "@mantine/core";
+import { Paper, Text, Avatar } from "@mantine/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getBoard, updateColumnOrder, createCard, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn, getColumnCardsOlder } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
@@ -12,7 +12,6 @@ import { useForm } from '@mantine/form';
 import { NewCardModal, CardModal, DeleteCardModal, BoardNotFound, DeleteColumnModal, CreateColumn, BoardFilter, BoardColumn, PriorityBadge} from "./components";
 import { Head } from "../../components";
 import type { SelectedCard, UpdateCardPayload } from "../../types";
-import { styles } from "./style";
 import { errorHandler } from "../../utils/helper";
 import { AxiosError } from "axios";
 import { useColumns, useColumnsDispatch } from "../../providers/ColumnsProvider";
@@ -54,7 +53,6 @@ function getStyle({ draggableStyle, virtualStyle, isDragging }) {
       ? draggableStyle.width
       : `calc(${combined.width} - ${grid * 2}px)`,
     marginBottom: grid,
-    ...styles.itemStyle
   };
 
   return result;
@@ -84,7 +82,8 @@ function Item({ provided, item, style, isDragging }) {
 
   return (
     <Paper
-      bd="0.5px gray solid"
+      withBorder
+      // bd="0.5px gray solid"
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       ref={provided.innerRef}
@@ -101,13 +100,13 @@ function Item({ provided, item, style, isDragging }) {
     >
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
           <Text fw={900} size="xs" c="gray.7">{item?.card_key}</Text>
-          <div style={{display:"flex", gap: 4, alignItems: "center"}}>       
-            <Text size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>
-              {item.due_date && dayjs(item.due_date).format('MMM. DD, YYYY')}
-            </Text>
+          <div style={{display:"flex", justifyContent:"flex-end", alignItems: "center", gap: 4}}>    
             {item?.priority && <PriorityBadge priority={item?.priority} size="xs" />}
             <Avatar size="sm" name="JULIO" color="initials" />   
           </div>
+      </div>
+      <div style={{display:"flex", alignItems: "center"}}>       
+        {item.due_date && <Text fw={500} size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>{dayjs(item.due_date).format('MMM. DD, YYYY')}</Text>}
       </div>
       <Text style={{fontSize: 12}}>
           {item.title}
@@ -146,6 +145,11 @@ const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
   const rowHeights = column.items.map((item) => {
     let height = 75
     height += calculateHeight(item?.title)
+
+    if(item?.due_date) {
+      height += 20
+    }
+    
     return height
   });
 
@@ -153,7 +157,7 @@ const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
     return rowHeights[index];
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if(hasMountedRef.current) {
       hasMountedRef.current?.resetAfterIndex(0)
     }
@@ -280,7 +284,7 @@ const Column = React.memo(function Column({ column, index, initCreateCard, initD
           ref={provided.innerRef}
         >
           <div {...provided.dragHandleProps} style={{paddingLeft: 16, paddingRight: 16, display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-            <h3 className="column-title">
+            <h3>
               {column.title}
             </h3>
             <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(column?._id) } initDeleteColumn={() => initDeleteColumn(column?._id)} />

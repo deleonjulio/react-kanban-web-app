@@ -39,9 +39,9 @@ export const styles = {
     minHeight: "100vh",
     backgroundColor: "white",
   },
-  itemStyle: {
-    padding: "8px",
-    backgroundColor: "white",
-    cursor: "grab",
-  },
+  // itemStyle: {
+  //   padding: "8px",
+  //   backgroundColor: "white",
+  //   cursor: "grab",
+  // },
 }

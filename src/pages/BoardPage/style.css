@@ -34,40 +34,22 @@ body {
 .column {
   margin: calc(var(--grid) / 2);
   /* border: var(--borderWidth) solid #0ff0fc; */
-  /* border: 1px solid gray; */
+  border: 0.5px solid gray;
   border-radius: var(--borderRadius);
   background-color: white;
-}
-
-.column-title {
-  /* font-size: 40px;
-  color: var(--pink);
-  text-shadow: 0px 0px 2px var(--pinkDark),
-    0px 0px 15px rgba(255, 110, 255, 0.5);
-  text-align: center;
-  margin: 0; */
-}
-
-.column-title:hover {
-  /* text-shadow: 0px 0px 2px var(--pinkDark),
-    0px 0px 15px rgba(255, 110, 255, 0.8); */
 }
 
 .task-list {
   /* this has no visible impact, but is in line with the absolute position spacing.
   doing this ensures that dropping into an empty list will be in the correct visual position */
-  /* padding-left: var(--grid);
+  padding-left: var(--grid);
   padding-right: var(--grid);
-  scrollbar-color: dark; */
-}
-
-.task-list::-webkit-scrollbar {
-  width: 1em;
+  scrollbar-color: dark;
 }
 
 .task-list::-webkit-scrollbar-track {
   background-color: var(--greyLight);
-  borderradius: var(--borderRadius);
+  border-radius: var(--borderRadius);
 }
 
 .task-list::-webkit-scrollbar-thumb {
@@ -75,21 +57,10 @@ body {
 }
 
 .item {
-  /* background: #333851;
-  border: var(--borderWidth) solid mediumpurple;
-  box-sizing: border-box;
-  border-radius: var(--borderRadius);
-  color: #cdd5ee;
-  font-size: 30px;
-  user-select: none;
-
-  display: flex;
-  justify-content: center;
-  align-items: center; */
+  padding: 8px;
+  cursor: grab;
 }
 
 .item.is-dragging {
-  background: #515b7d;
-  border-color: #08ff08;
-  box-shadow: 0px 0px 2px rgb(8, 58, 30), 0px 0px 10px lightblue;
+  box-shadow: 1px 1px 1px gray;
 }
