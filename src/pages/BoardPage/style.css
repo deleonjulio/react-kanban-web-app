@@ -88,7 +88,7 @@ body {
 }
 
 .item.is-dragging {
-  background: #515b7d;
+  /* background: #515b7d;
   border-color: #08ff08;
-  box-shadow: 0px 0px 2px rgb(8, 58, 30), 0px 0px 10px MediumSeaGreen;
+  box-shadow: 0px 0px 2px rgb(8, 58, 30), 0px 0px 10px MediumSeaGreen; */
 }

@@ -57,11 +57,19 @@ function getStyle({ draggableStyle, virtualStyle, isDragging }) {
   return result;
 }
 
-function Item({ provided, item, style, isDragging }) {
+function Item({ provided, item, style, isDragging, index, handleHeightChange }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const element = document.getElementById(`item-${item?._id}`)
+
+  useEffect(() => {
+    if(handleHeightChange) {
+      handleHeightChange(index, element?.scrollHeight + 8)
+    }
+  }, [element])
 
   return (
     <div
+      id={`item-${item?._id}`}
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       ref={provided.innerRef}
@@ -84,7 +92,7 @@ function Item({ provided, item, style, isDragging }) {
 // Recommended react-window performance optimisation: memoize the row render function
 // Things are still pretty fast without this, but I am a sucker for making things faster
 const Row = React.memo(function Row(props) {
-  const { data: items, index, style } = props;
+  const { data: { items, handleHeightChange }, index, style } = props;
   const item = items[index];
   
   // We are rendering an extra item for the placeholder
@@ -94,7 +102,7 @@ const Row = React.memo(function Row(props) {
 
   return (
     <Draggable draggableId={item._id} index={index} key={item._id}>
-      {provided => <Item provided={provided} item={item} style={style} />}
+      {provided => <Item provided={provided} item={item} style={style} index={index} handleHeightChange={handleHeightChange} />}
     </Draggable>
   );
 }, areEqual);
@@ -120,6 +128,40 @@ const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
   //   return rowHeights[index];
   // }
 
+
+  const [finalHeight, setFinalHeight] = useState(80)
+  const [hIndex, setHIndex] = useState(0)
+  const handleHeightChange = (initialIndex, height) => {
+    // console.log(finalHeight)
+    console.log('initialIndex', initialIndex)
+    console.log('height', height)
+    setFinalHeight(height)
+    setHIndex(initialIndex)
+    // setTimeout(() => {
+    //   hasMountedRef?.current?.resetAfterIndex()
+    // }, 500)
+   
+  }
+
+  const getItemSize = () => {
+    // hasMountedRef.current
+    // console.log(hasMountedRef?.current?.resetAfterIndex(0))
+    return finalHeight
+  }
+
+  // useEffect(() => {
+  //   if(hasMountedRef) {
+  //     hasMountedRef?.current?.resetAfterIndex()
+  //   }
+  // }, [finalHeight])
+
+  useEffect(() => {
+    if(finalHeight) {
+      hasMountedRef?.current?.resetAfterIndex(index)
+    }
+
+  }, [finalHeight, hIndex])
+
   return (
     <Droppable
       droppableId={column._id}
@@ -141,12 +183,12 @@ const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
           : column.items.length;
 
         return (
-          <FixedSizeList 
+          <VariableSizeList 
             height={500}
             itemCount={itemCount}
-            itemSize={80}
+            itemSize={getItemSize}
             width={300}
-            itemData={column.items}
+            itemData={{items: column.items, handleHeightChange: handleHeightChange}}
             className="task-list"
             outerRef={provided.innerRef}
             innerRef={listRef}
@@ -169,7 +211,7 @@ const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
             }}
           >
             {Row}
-          </FixedSizeList >
+          </VariableSizeList >
         );
       }}
     </Droppable>
