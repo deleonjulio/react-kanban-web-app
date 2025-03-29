@@ -6,7 +6,7 @@ export const BoardFilter = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   return (
-   <Grid>
+   <Grid style={{padding: 4}}>
       <Grid.Col span={{ base: 2 }}>
         <Select 
           label="Priority"

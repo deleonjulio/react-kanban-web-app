@@ -111,6 +111,8 @@ export const BoardPage = () => {
     }
 
     if (result.type === "column") {
+      if (result.source.index === result.destination.index) return; 
+
       // if the list is scrolled it looks like there is some strangeness going on
       // with react-window. It looks to be scrolling back to scroll: 0
       // I should log an issue with the project
@@ -131,6 +133,8 @@ export const BoardPage = () => {
 
     // reordering in same list
     if (result.source.droppableId === result.destination.droppableId) {
+      if (result.source.index === result.destination.index) return; 
+
       const column = columns.columns[result.source.droppableId];
       const items = reorderList(
         column.items,
@@ -456,7 +460,7 @@ export const BoardPage = () => {
   }
 
   return (
-    <div>
+    <div id="board-container">
       <Head title={BOARD_NAME} />
       <BoardFilter />
       <div id="columns-container">
