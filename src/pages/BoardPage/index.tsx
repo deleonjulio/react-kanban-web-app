@@ -488,7 +488,9 @@ export const BoardPage = () => {
             </Droppable>
           </div>
         </DragDropContext>
-        <CreateColumn handleCreateColumn={handleCreateColumn} createColumnIsPending={createColumnIsPending} />
+        <div id="create-column-container">
+          <CreateColumn handleCreateColumn={handleCreateColumn} createColumnIsPending={createColumnIsPending} />
+        </div>
       </div>
       <NewCardModal form={form} opened={createCardModalOpened} close={handleCloseCreateCardModal} handleCreateCard={handleCreateCard} createCardIsPending={createCardIsPending} />
       <DeleteColumnModal 

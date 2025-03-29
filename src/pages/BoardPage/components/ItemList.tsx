@@ -1,4 +1,4 @@
-import { memo, useRef, useLayoutEffect } from "react";
+import { memo, useRef, useLayoutEffect, useEffect } from "react";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { areEqual, VariableSizeList } from "react-window";
 import { Paper, Text, Avatar } from "@mantine/core";
@@ -145,12 +145,15 @@ export const ItemList = memo(function ItemList({ column, index, loadMore }) {
         hasMountedRef.current?.resetAfterIndex(0)
       }
     }, [column])
-  
-    // react-window not resetting its UI
+
     // useLayoutEffect(() => {
     //   if(hasMountedRef.current) {
-    //     hasMountedRef.current?.scrollTo(0)
-    //     hasMountedRef.current?.resetAfterIndex(0)
+    //     // react-window not resetting its UI
+    //     // need to use timeout
+    //     setTimeout(() => {
+    //       hasMountedRef.current?.resetAfterIndex(0)
+    //       hasMountedRef.current?.scrollTo(0)
+    //     }, 1000)
     //   }
     // }, [index])
 

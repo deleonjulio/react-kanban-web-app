@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActionIcon, Tooltip, TextInput } from "@mantine/core";
+import { ActionIcon, TextInput, Button } from "@mantine/core";
 import { IconPlus, IconCheck, IconX } from '@tabler/icons-react';
 import { useForm } from '@mantine/form';
 
@@ -42,7 +42,7 @@ export const CreateColumn = ({
   }, [isCreating])
 
   return (
-    <div style={{width: 225}}>
+    <div style={{width: "inherit"}}>
       {isCreating ? (
         <div onMouseLeave={resetCreateColumn}>
           <form
@@ -67,11 +67,7 @@ export const CreateColumn = ({
           </form>
         </div>
       ) : (
-        <Tooltip label="Add new column" position="bottom">
-          <ActionIcon variant="default" aria-label="Add new column" onClick={() => setIsCreating(true)}>
-            <IconPlus color="gray" />
-          </ActionIcon>
-        </Tooltip>
+        <Button leftSection={<IconPlus size={18} color="gray"/>} size="sm" variant="default" onClick={() => setIsCreating(true)}>Add new column</Button>
       )}
      
     </div>

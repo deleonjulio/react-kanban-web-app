@@ -2,7 +2,6 @@
 
 :root {
   --grid: 8px;
-  --pinkDark: #690169;
   --greyLight: #515b7d;
   --black: #1d212e;
   --borderWidth: 4px;
@@ -33,7 +32,7 @@ body {
 .column {
   margin: calc(var(--grid) / 2);
   /* border: var(--borderWidth) solid #0ff0fc; */
-  border: 0.5px solid gray;
+  /* border: 0.5px solid gray; */
   border-radius: var(--borderRadius);
   background-color: white;
   user-select: none;
@@ -45,7 +44,6 @@ body {
   padding-left: var(--grid);
   padding-right: var(--grid);
   scrollbar-color: dark;
-  overscroll-behavior: none;
 }
 
 .task-list::-webkit-scrollbar-track {
@@ -64,5 +62,11 @@ body {
 
 #columns-container {
   display: flex;
-  gap: 8
+  gap: 4;
 }
+
+#create-column-container {
+  width: 225px;
+  padding-top: 4px;
+}
+
