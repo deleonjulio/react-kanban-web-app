@@ -2,7 +2,6 @@
 
 :root {
   --grid: 8px;
-  --pink: #fd3afd;
   --pinkDark: #690169;
   --greyLight: #515b7d;
   --black: #1d212e;
@@ -37,6 +36,7 @@ body {
   border: 0.5px solid gray;
   border-radius: var(--borderRadius);
   background-color: white;
+  user-select: none;
 }
 
 .task-list {
@@ -45,15 +45,12 @@ body {
   padding-left: var(--grid);
   padding-right: var(--grid);
   scrollbar-color: dark;
+  overscroll-behavior: none;
 }
 
 .task-list::-webkit-scrollbar-track {
   background-color: var(--greyLight);
   border-radius: var(--borderRadius);
-}
-
-.task-list::-webkit-scrollbar-thumb {
-  background-color: var(--pink);
 }
 
 .item {
@@ -63,4 +60,9 @@ body {
 
 .item.is-dragging {
   box-shadow: 1px 1px 1px gray;
+}
+
+#columns-container {
+  display: flex;
+  gap: 8
 }

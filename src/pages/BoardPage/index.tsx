@@ -1,27 +1,18 @@
-// @flow
-import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { areEqual, VariableSizeList } from "react-window";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { useState, useEffect } from "react";
+import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import "./style.css";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Paper, Text, Avatar } from "@mantine/core";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getBoard, updateColumnOrder, createCard, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn, getColumnCardsOlder } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
-import { NewCardModal, CardModal, DeleteCardModal, BoardNotFound, DeleteColumnModal, CreateColumn, BoardFilter, BoardColumn, PriorityBadge} from "./components";
+import { NewCardModal, CardModal, DeleteCardModal, BoardNotFound, DeleteColumnModal, CreateColumn, BoardFilter, BoardColumn } from "./components";
 import { Head } from "../../components";
 import type { SelectedCard, UpdateCardPayload } from "../../types";
 import { errorHandler } from "../../utils/helper";
 import { AxiosError } from "axios";
 import { useColumns, useColumnsDispatch } from "../../providers/ColumnsProvider";
 import { BoardColumns, Card } from "../../providers/ColumnsProvider";
-import { ColumnHeader } from "./components";
-import dayjs from "dayjs";
-
-import { getColumnCards } from "../../apis";
-
-const CURRENT_DATE = dayjs();
 
 function reorderList(list, startIndex, endIndex) {
   const result = Array.from(list);
@@ -30,271 +21,6 @@ function reorderList(list, startIndex, endIndex) {
 
   return result;
 }
-
-function getStyle({ draggableStyle, virtualStyle, isDragging }) {
-  // If you don't want any spacing between your items
-  // then you could just return this.
-  // I do a little bit of magic to have some nice visual space
-  // between the row items
-  const combined = {
-    ...virtualStyle,
-    ...draggableStyle,
-  };
-
-  // Being lazy: this is defined in our css file
-  const grid = 8;
-
-  // when dragging we want to use the draggable style for placement, otherwise use the virtual style
-  const result = {
-    ...combined,
-    height: isDragging ? combined.height : combined.height - grid,
-    left: isDragging ? combined.left : combined.left + grid,
-    width: isDragging
-      ? draggableStyle.width
-      : `calc(${combined.width} - ${grid * 2}px)`,
-    marginBottom: grid,
-  };
-
-  return result;
-}
-
-function calculateHeight(text, width = 300, fontSize = 13) {
-  const uppercaseCount = (text.match(/[A-Z]/g) || []).length;
-  const lowercaseCount = (text.match(/[a-z]/g) || []).length;
-  const numberCount = (text.match(/[0-9]/g) || []).length;
-  const totalLength = text.length;
-
-  if (totalLength === 0) return 0; // No text, no height
-
-  // Weighted average character width based on text composition
-  const avgCharWidth =
-      ((uppercaseCount * 0.65 + lowercaseCount * 0.54 + numberCount * 0.6) / totalLength) * fontSize;
-
-  const lineHeight = fontSize * 1.5;
-  const charsPerLine = Math.floor(width / avgCharWidth);
-  const totalLines = Math.ceil(totalLength / charsPerLine);
-
-  return totalLines * lineHeight;
-}
-
-function Item({ provided, item, style, isDragging }) {
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  return (
-    <Paper
-      withBorder
-      // bd="0.5px gray solid"
-      {...provided.draggableProps}
-      {...provided.dragHandleProps}
-      ref={provided.innerRef}
-      style={getStyle({
-        draggableStyle: provided.draggableProps.style,
-        virtualStyle: style,
-        isDragging
-      })}
-      className={`item ${isDragging ? "is-dragging" : ""}`}
-      onClick={() => {
-        searchParams.set("selectedCard", item.card_key);
-        setSearchParams(searchParams)
-      }}
-    >
-      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-          <Text fw={900} size="xs" c="gray.7">{item?.card_key}</Text>
-          <div style={{display:"flex", justifyContent:"flex-end", alignItems: "center", gap: 4}}>    
-            {item?.priority && <PriorityBadge priority={item?.priority} size="xs" />}
-            <Avatar size="sm" name="JULIO" color="initials" />   
-          </div>
-      </div>
-      <div style={{display:"flex", alignItems: "center"}}>       
-        {item.due_date && <Text fw={500} size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>{dayjs(item.due_date).format('MMM. DD, YYYY')}</Text>}
-      </div>
-      <Text style={{fontSize: 12}}>
-          {item.title}
-      </Text>
-    </Paper>
-  );
-}
-
-// Recommended react-window performance optimisation: memoize the row render function
-// Things are still pretty fast without this, but I am a sucker for making things faster
-const Row = React.memo(function Row(props) {
-  const { data: items, index, style } = props;
-  const item = items[index];
-  
-  // We are rendering an extra item for the placeholder
-  if (!item) {
-    return null;
-  }
-
-  return (
-    <Draggable draggableId={item._id} index={index} key={item._id}>
-      {provided => <Item provided={provided} item={item} style={style} />}
-    </Draggable>
-  );
-}, areEqual);
-
-const ItemList = React.memo(function ItemList({ column, index, loadMore }) {
-  // There is an issue I have noticed with react-window that when reordered
-  // react-window sets the scroll back to 0 but does not update the UI
-  // I should raise an issue for this.
-  // As a work around I am resetting the scroll to 0
-  // on any list that changes it's index
-  const listRef = useRef();
-  const hasMountedRef = useRef();
-
-  const rowHeights = column.items.map((item) => {
-    let height = 75
-    height += calculateHeight(item?.title)
-
-    if(item?.due_date) {
-      height += 20
-    }
-    
-    return height
-  });
-
-  const getItemSize = index => {
-    return rowHeights[index];
-  }
-
-  useLayoutEffect(() => {
-    if(hasMountedRef.current) {
-      hasMountedRef.current?.resetAfterIndex(0)
-    }
-  }, [column])
-
-  let totalHeight = 0
-
-  rowHeights.forEach(i => {
-    totalHeight += i
-  })
-
-  return (
-    <Droppable
-      droppableId={column._id}
-      mode="virtual"
-      renderClone={(provided, snapshot, rubric) => (
-        <Item
-          provided={provided}
-          isDragging={snapshot.isDragging}
-          item={column.items[rubric.source.index]}
-        />
-      )}
-    >
-      {(provided, snapshot) => {
-        // Add an extra item to our list to make space for a dragging item
-        // Usually the DroppableProvided.placeholder does this, but that won't
-        // work in a virtual list
-        const itemCount = snapshot.isUsingPlaceholder
-          ? column.items.length + 1
-          : column.items.length;
-
-        return (
-          <VariableSizeList 
-            height={700}
-            itemCount={itemCount}
-            itemSize={getItemSize}
-            width={300}
-            itemData={column.items}
-            className="task-list"
-            outerRef={provided.innerRef}
-            innerRef={listRef}
-            ref={hasMountedRef}
-            onScroll={(event) => {
-              if (!hasMountedRef.current) {
-                hasMountedRef.current = true;
-                return;
-              }
-          
-              if (!listRef.current) {
-                return;
-              }
-
-              console.log(hasMountedRef.current.props.height + event.scrollOffset, totalHeight)
-              if (hasMountedRef.current.props.height + event.scrollOffset >= totalHeight) {
-                loadMore()
-              }
-            }}
-          >
-            {Row}
-          </VariableSizeList >
-        );
-      }}
-    </Droppable>
-  );
-});
-
-const Column = React.memo(function Column({ column, index, initCreateCard, initDeleteColumn }) {
-  const { id: boardId } = useParams();
-  const columns = useColumns()
-  const columnsDispatch = useColumnsDispatch()
-
-  const lastCard = column?.items[column?.items?.length - 1];
-
-  const { data: cards, error: errorGetColumnCards } = useQuery({
-      queryKey: [boardId, column._id],
-      queryFn: () => getColumnCards({boardId, columnId: column._id, columnFilters: {}}),
-      enabled: boardId !== undefined && column._id !== undefined,
-      retry: false,
-      refetchOnWindowFocus: false,
-  })
-
-  const { data: olderCards, refetch, isFetching: getColumnCardsOlderIsPending } = useQuery({
-    queryKey: ["columnCardsOlder", boardId, column?._id],
-    queryFn: () => getColumnCardsOlder({boardId, columnId: column._id, columnFilters: {}, cardId: lastCard._id}),
-    enabled: false, // Disabled by default, only fetch when triggered
-  });
-
-  const loadMore = () => refetch()
-
-  useEffect(() => {
-    if(cards?.data) {
-        const cardsData = cards.data?.data;
-        columnsDispatch({type: "INITIAL_LOAD", column: {
-          [column._id]: {
-            ...columns?.columns[column?._id],
-            items: cardsData
-          }
-        }})
-      }
-  }, [cards])
-
-  useEffect(() => {
-    if(olderCards?.data?.data) {
-      const updatedColumns = {
-        ...columns,
-        columns: {
-          ...columns.columns,
-          [column?._id]: {
-            ...columns.columns[column?._id],
-            items: [...columns.columns[column?._id].items, ...olderCards?.data?.data]
-          }
-        }
-      };
-      columnsDispatch({ type: "LIST", boardData: updatedColumns });
-    }
-  }, [olderCards])
-
-  return (
-    <Draggable draggableId={column?._id} index={index}>
-      {provided => (
-        <div
-          className="column"
-          {...provided.draggableProps}
-          ref={provided.innerRef}
-        >
-          <div {...provided.dragHandleProps} style={{paddingLeft: 16, paddingRight: 16, display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-            <h3>
-              {column.title}
-            </h3>
-            <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(column?._id) } initDeleteColumn={() => initDeleteColumn(column?._id)} />
-          </div>
-          <ItemList column={column} index={index} loadMore={loadMore} />
-        </div>
-      )}
-    </Draggable>
-  );
-});
 
 export const BoardPage = () => {
   const { id: boardId } = useParams();
@@ -731,35 +457,39 @@ export const BoardPage = () => {
 
   return (
     <div>
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="app">
-          <Droppable
-            droppableId="all-droppables"
-            direction="horizontal"
-            type="column"
-          >
-            {provided => (
-              <div
-                className="columns"
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-              >
-                {columns?.columnOrder?.map((columnId, index) => (
-                  <Column
-                    key={columnId}
-                    column={columns.columns[columnId]}
-                    index={index}
-                    initCreateCard={initCreateCard}
-                    initDeleteColumn={initDeleteColumn} 
-                  />
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </div>
-      </DragDropContext>
-      <CreateColumn handleCreateColumn={handleCreateColumn} createColumnIsPending={createColumnIsPending} />
+      <Head title={BOARD_NAME} />
+      <BoardFilter />
+      <div id="columns-container">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="app">
+            <Droppable
+              droppableId="all-droppables"
+              direction="horizontal"
+              type="column"
+            >
+              {provided => (
+                <div
+                  className="columns"
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                >
+                  {columns?.columnOrder?.map((columnId, index) => (
+                    <BoardColumn 
+                      key={columnId}
+                      column={columns.columns[columnId]}
+                      index={index}
+                      initCreateCard={initCreateCard}
+                      initDeleteColumn={initDeleteColumn} 
+                    />
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </div>
+        </DragDropContext>
+        <CreateColumn handleCreateColumn={handleCreateColumn} createColumnIsPending={createColumnIsPending} />
+      </div>
       <NewCardModal form={form} opened={createCardModalOpened} close={handleCloseCreateCardModal} handleCreateCard={handleCreateCard} createCardIsPending={createCardIsPending} />
       <DeleteColumnModal 
         opened={deleteColumnModalOpened}
