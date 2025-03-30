@@ -40,7 +40,9 @@
 }
 
 .item {
-  padding: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-top: 4px;
   cursor: grab;
 }
 

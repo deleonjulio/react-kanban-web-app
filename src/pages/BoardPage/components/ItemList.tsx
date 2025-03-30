@@ -9,16 +9,11 @@ import { useSearchParams } from "react-router-dom";
 const CURRENT_DATE = dayjs();
 
 function calculateHeight(text, width = 300, fontSize = 13) {
-  const uppercaseCount = (text.match(/[A-Z]/g) || []).length;
-  const lowercaseCount = (text.match(/[a-z]/g) || []).length;
-  const numberCount = (text.match(/[0-9]/g) || []).length;
   const totalLength = text.length;
-
   if (totalLength === 0) return 0; // No text, no height
 
-  // Weighted average character width based on text composition
-  const avgCharWidth =
-      ((uppercaseCount * 0.65 + lowercaseCount * 0.54 + numberCount * 0.6) / totalLength) * fontSize;
+  // Since all characters are uppercase, use a fixed width per character
+  const avgCharWidth = 0.65 * fontSize;
 
   const lineHeight = fontSize * 1.5;
   const charsPerLine = Math.floor(width / avgCharWidth);
@@ -85,7 +80,7 @@ export const Item = ({ provided, item, style, isDragging }) => {
       <div style={{display:"flex", alignItems: "center"}}>       
         {item.due_date && <Text fw={500} size="xs" c={CURRENT_DATE >= dayjs(item.due_date) ? "red" : "gray"}>{dayjs(item.due_date).format('MMM. DD, YYYY')}</Text>}
       </div>
-      <Text style={{fontSize: 12}}>
+      <Text style={{fontSize: 13}}>
           {item.title}
       </Text>
     </Paper>
@@ -120,7 +115,7 @@ export const ItemList = memo(function ItemList({ column, index, loadMore }) {
     const hasMountedRef = useRef();
   
     const rowHeights = column.items.map((item) => {
-      let height = 75
+      let height = 70
       height += calculateHeight(item?.title)
   
       if(item?.due_date) {
