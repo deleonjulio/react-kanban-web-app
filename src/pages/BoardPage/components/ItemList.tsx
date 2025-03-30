@@ -163,7 +163,7 @@ export const ItemList = memo(function ItemList({ column, index, loadMore }) {
   
           return (
             <VariableSizeList 
-              height={550}
+              height={600}
               itemCount={itemCount}
               itemSize={getItemSize}
               width={300}
