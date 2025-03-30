@@ -204,12 +204,28 @@ export const BoardPage = () => {
     columnsDispatch({type: "LIST", boardData: newState})
 
     if (result?.source?.droppableId && result?.destination?.droppableId) {
+      let targetCardId = ''
+      if(result?.destination?.index === 0) {
+        if(columns.columns[result.destination.droppableId].items[result?.destination.index]?._id) {
+          targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index]?._id
+        } else {
+          targetCardId = 'FIRST'
+        }
+      } else {
+        if(columns.columns[result.destination.droppableId].items[result?.destination.index]?._id === undefined) {
+          targetCardId = "LAST"
+        } else {
+          targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index]?._id
+        }
+      }
+
       updateCardLocationMutate({ 
         boardId, 
         sourceColumnId: result.source.droppableId, 
         destinationColumnId: result.destination.droppableId, 
         destinationIndex: result.destination.index, 
-        cardId: result.draggableId 
+        cardId: result.draggableId,
+        targetCardId
       });
     }
   }
