@@ -7,6 +7,7 @@ import { useColumns, useColumnsDispatch } from "../../../providers/ColumnsProvid
 import { getColumnCardsOlder } from "../../../apis";
 import { useSearchParams, useParams } from "react-router-dom";
 import { ItemList } from "./ItemList";
+import { Text } from "@mantine/core";
 
 export const BoardColumn = memo(function BoardColumn({
   column, 
@@ -76,9 +77,9 @@ export const BoardColumn = memo(function BoardColumn({
       <Draggable draggableId={column?._id} index={index}>
         {provided => (
           <div className="column" {...provided.draggableProps} ref={provided.innerRef}>
-            <div {...provided.dragHandleProps} style={{paddingLeft: 16, paddingRight: 16, display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-            <h4>{column.title}</h4>
-            <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(column?._id) } initDeleteColumn={() => initDeleteColumn(column?._id)} />
+            <div {...provided.dragHandleProps} style={{paddingLeft: 10, paddingRight: 10, display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+              <Text fw={"bold"} my={14}>{column.title}</Text>
+              <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(column?._id) } initDeleteColumn={() => initDeleteColumn(column?._id)} />
             </div>
           <ItemList column={column} index={index} loadMore={loadMore} />
         </div>

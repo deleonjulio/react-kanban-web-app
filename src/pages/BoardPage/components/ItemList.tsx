@@ -141,21 +141,10 @@ export const ItemList = memo(function ItemList({ column, index, loadMore }) {
     })
 
     useLayoutEffect(() => {
-      if(hasMountedRef.current) {
+      if(hasMountedRef?.current) {
         hasMountedRef.current?.resetAfterIndex(0)
       }
     }, [column])
-
-    // useLayoutEffect(() => {
-    //   if(hasMountedRef.current) {
-    //     // react-window not resetting its UI
-    //     // need to use timeout
-    //     setTimeout(() => {
-    //       hasMountedRef.current?.resetAfterIndex(0)
-    //       hasMountedRef.current?.scrollTo(0)
-    //     }, 1000)
-    //   }
-    // }, [index])
 
     return (
       <Droppable

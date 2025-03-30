@@ -22,15 +22,17 @@ export const updateCardLocation = ({
     sourceColumnId, 
     destinationColumnId, 
     destinationIndex, 
-    cardId 
+    cardId,
+    targetCardId
   }: { 
     boardId?: string; 
     sourceColumnId: string;
     destinationColumnId: string; 
     destinationIndex: number;
     cardId?: string;
+    targetCardId: string;
   }) => {
-    return PATCH(`/boards/${boardId}/columns/${sourceColumnId}/cards/${cardId}/move/`, { destinationColumnId, destinationIndex });
+    return PATCH(`/boards/${boardId}/columns/${sourceColumnId}/cards/${cardId}/move/`, { destinationColumnId, destinationIndex, targetCardId });
 }
 
 export const getCardActivities = (query: string) => {

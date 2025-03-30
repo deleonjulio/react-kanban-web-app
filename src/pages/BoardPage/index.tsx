@@ -27,6 +27,8 @@ export const BoardPage = () => {
   
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const priority = searchParams.get('priority')
+
   const columns = useColumns()
   const columnsDispatch = useColumnsDispatch()
 
@@ -156,12 +158,15 @@ export const BoardPage = () => {
       columnsDispatch({type: "LIST", boardData: newState})
 
       if (result?.source?.droppableId && result?.destination?.droppableId) {
+        const targetCardId = columns.columns[result.source.droppableId].items[result?.destination.index]?._id
+
         updateCardLocationMutate({ 
           boardId, 
           sourceColumnId: result.source.droppableId, 
           destinationColumnId: result.destination.droppableId, 
           destinationIndex: result.destination.index, 
-          cardId: result.draggableId 
+          cardId: result.draggableId,
+          targetCardId
         });
       }
       return;
@@ -459,6 +464,11 @@ export const BoardPage = () => {
     )
   }
 
+  // I need to re-render the entire board if a user unselects a filter.
+  // I have an issue with hasMountedRef.current?.resetAfterIndex(0).
+  // VERY IMPORTANT, In the future, please add the other filters here. (due_date?, tag?)
+  const forceRender = priority
+
   return (
     <div id="board-container">
       <Head title={BOARD_NAME} />
@@ -473,6 +483,7 @@ export const BoardPage = () => {
             >
               {provided => (
                 <div
+                  key={forceRender}
                   className="columns"
                   {...provided.droppableProps}
                   ref={provided.innerRef}
