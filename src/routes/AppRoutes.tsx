@@ -1,5 +1,5 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom'
-import { Home, BoardPage, Login } from '../pages'
+import {  Login, Home, OverviewPage, BoardPage, ListPage, MembersPage } from '../pages'
 import { GET } from '../utils/request';
 import { Navbar } from '../components';
 
@@ -42,21 +42,17 @@ const routes = [{
     path: '/',
     errorElement: <>Page not found</>,
     children: [
-            // { path: '/',  element: <Home />, loader },
-            // { path: '/boards',  element: <Home />, loader },
-            // { path: '/login',  element: <Login /> },
-            // { path: '/boards/:id', element: <BoardPage /> },
-
-            { path: '/',  element: <Home />, loader },
-            // { path: '/boards',  element: <Home />, loader },
             { path: '/login',  element: <Login /> },
-            // { path: '/boards/:id', element: <BoardPage /> },
+            { path: '/boards',  element: <Home />, loader },
             {
-              path: '/boards/', 
+              path: '/', 
               element: <Main />,
               children: [
-                { path: '',  element: <Home />, loader },
-                { path: ':id',  element: <BoardPage /> },
+                { path: 'overview/:id',  element: <OverviewPage /> },
+                { path: 'board/:id',  element: <BoardPage /> },
+                { path: 'list/:id',  element: <ListPage /> },
+                { path: 'members/:id',  element: <MembersPage /> },
+                
               ]
             }
         ]

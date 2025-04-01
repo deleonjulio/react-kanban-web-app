@@ -1,36 +1,27 @@
 import { useState } from 'react';
 import {
-  Icon2fa,
-  IconBellRinging,
-  IconDatabaseImport,
-  IconFingerprint,
-  IconKey,
   IconLogout,
-  IconReceipt2,
   IconSettings,
-  IconSwitchHorizontal,
   IconUser,
-  IconBox,
   IconList,
   IconDashboard,
   IconLayoutKanban
 } from '@tabler/icons-react';
-import { Code, Group } from '@mantine/core';
-// import { MantineLogo } from '@mantinex/mantine-logo';
+import { Group } from '@mantine/core';
+import { useNavigate, useParams } from 'react-router-dom';
 import classes from './Navbar.module.css';
 
 const data = [
-  { link: '', label: 'Summary', icon: IconDashboard },
-  { link: '', label: 'Board', icon: IconLayoutKanban },
-  { link: '', label: 'List', icon: IconList },
-  { link: '', label: 'Members', icon: IconUser },
-//   { link: '', label: 'Databases', icon: IconDatabaseImport },
-//   { link: '', label: 'Authentication', icon: Icon2fa },
-//   { link: '', label: 'Other Settings', icon: IconSettings },
+  { link: 'overview', label: 'Overview', icon: IconDashboard },
+  { link: 'board', label: 'Board', icon: IconLayoutKanban },
+  { link: 'list', label: 'List', icon: IconList },
+  { link: 'members', label: 'Members', icon: IconUser },
 ];
 
 export function Navbar() {
   const [active, setActive] = useState('Billing');
+  const navigate = useNavigate()
+  const { id } = useParams()
 
   const links = data.map((item) => (
     <a
@@ -40,6 +31,7 @@ export function Navbar() {
       key={item.label}
       onClick={(event) => {
         event.preventDefault();
+        navigate(`${item?.link}/${id}`)
         setActive(item.label);
       }}
     >

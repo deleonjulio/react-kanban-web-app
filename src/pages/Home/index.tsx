@@ -100,7 +100,7 @@ export const Home = () => {
       onSuccess: (response) => {
           form.reset()
           close()
-          navigate(`/boards/${response?.data.id}`)
+          navigate(`/board/${response?.data.id}`)
       }, onError: (error: AxiosError) => {
           errorHandler(error);
       },
@@ -132,7 +132,7 @@ export const Home = () => {
             </ActionIcon>
           </Menu.Target>
           <Menu.Dropdown>
-            <Menu.Item onClick={() => navigate(`/boards/${element?._id}`)}>
+            <Menu.Item onClick={() => navigate(`/board/${element?._id}`)}>
               <span className="font-medium">Edit</span>
             </Menu.Item>
             <Menu.Item disabled={deleteBoardIsPending} onClick={() => openDeleteModal(element?._id)} color="red">
