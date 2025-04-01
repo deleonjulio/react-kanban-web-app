@@ -7,7 +7,7 @@ import {
   IconDashboard,
   IconLayoutKanban
 } from '@tabler/icons-react';
-import { Group } from '@mantine/core';
+import { Group, Title } from '@mantine/core';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { logout } from '../../apis';
@@ -58,7 +58,7 @@ export function Navbar() {
       <div className={classes.navbarMain}>
         <Group className={classes.header} justify="space-between">
           {/* <MantineLogo size={28} /> */}
-          {/* <Code fw={700}>v3.1.2</Code> */}
+          <Title order={6}>Board name</Title>
         </Group>
         {links}
       </div>

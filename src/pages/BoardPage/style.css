@@ -5,9 +5,6 @@
   --borderRadius: 8px;
 }
 
-#board-container {
-  padding: 20px;
-}
 
 #columns-container {
   display: flex;

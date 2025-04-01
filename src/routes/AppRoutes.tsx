@@ -2,18 +2,44 @@ import { createBrowserRouter, Outlet } from 'react-router-dom'
 import {  Login, Home, OverviewPage, BoardPage, ListPage, MembersPage } from '../pages'
 import { GET } from '../utils/request';
 import { Navbar } from '../components';
+import { AppShell, Burger, Group, Skeleton } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+// import { MantineLogo } from '@mantinex/mantine-logo';
+
 
 const Main = () => {
+  const [opened, { toggle }] = useDisclosure();
+
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <div style={{ width: "inherit", height: "100vh", position: "sticky", top: 0, background: "#e5e7eb", }}>
+    <AppShell
+      header={{ height: 60 }}
+      navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+      padding="md"
+    >
+      <AppShell.Header>
+        <Group h="100%" px="md">
+          <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
+          {/* <MantineLogo size={30} /> */}
+        </Group>
+      </AppShell.Header>
+      <AppShell.Navbar p="md">
         <Navbar />
-      </div>
-      <div style={{ flex: 1, background: "#f3f4f6", overflowY: "auto" }}>
+      </AppShell.Navbar>
+      <AppShell.Main> 
         <Outlet />
-      </div>
-    </div>
-  )
+      </AppShell.Main>
+    </AppShell>
+  );
+  // return (
+  //   <div style={{ display: "flex", height: "100vh" }}>
+  //     <div style={{ width: "inherit", height: "100vh", position: "sticky", top: 0, background: "#e5e7eb", }}>
+  //       <Navbar />
+  //     </div>
+  //     <div style={{ flex: 1, background: "#f3f4f6", overflowY: "auto" }}>
+  //       <Outlet />
+  //     </div>
+  //   </div>
+  // )
 }
 
 async function loader () {
