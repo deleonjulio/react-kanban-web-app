@@ -29,10 +29,9 @@ export const Login = () => {
         mutationFn: login,
         onSuccess: async (response) => {
             console.log(response)
-            navigate('/')
+            navigate('/boards')
         }, onError: (error: AxiosError) => {
             if (error instanceof AxiosError) {
-                console.log(error, 'WHAT')
                 if(error?.response?.data?.error) {
                     form.setFieldError('email', error?.response?.data?.error);
                 } else if(error?.response?.data?.message) {

@@ -9,6 +9,8 @@ import {
 } from '@tabler/icons-react';
 import { Group } from '@mantine/core';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { logout } from '../../apis';
 import classes from './Navbar.module.css';
 
 const data = [
@@ -19,9 +21,16 @@ const data = [
 ];
 
 export function Navbar() {
-  const [active, setActive] = useState('Billing');
+  const [active, setActive] = useState('Board');
   const navigate = useNavigate()
   const { id } = useParams()
+
+  const { mutate: logoutMutate } = useMutation({
+    mutationFn: logout,
+    onSettled: () => {
+      navigate('/login')
+    }
+  })
 
   const links = data.map((item) => (
     <a
@@ -56,9 +65,15 @@ export function Navbar() {
           <span>Settings</span>
         </a>
 
-        <a href="#" className={classes.link} onClick={(event) => event.preventDefault()}>
-          <IconLogout className={classes.linkIcon} stroke={1.5} />
-          <span>Logout</span>
+        <a href="#"  
+          className={classes.link} 
+          onClick={(event) => {
+              logoutMutate()
+              event.preventDefault()
+            }
+          }>
+          <IconLogout color="red" className={classes.linkIcon} stroke={1.5} />
+          <span style={{color: "red"}}>Logout</span>
         </a>
       </div>
     </nav>
