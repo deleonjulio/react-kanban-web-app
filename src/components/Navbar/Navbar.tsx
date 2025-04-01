@@ -8,7 +8,7 @@ import {
   IconLayoutKanban
 } from '@tabler/icons-react';
 import { Group } from '@mantine/core';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { logout } from '../../apis';
 import classes from './Navbar.module.css';
@@ -21,7 +21,11 @@ const data = [
 ];
 
 export function Navbar() {
-  const [active, setActive] = useState('Board');
+  const location = useLocation();
+  const baseRoute = location.pathname.split("/")[1]; 
+
+  const [active, setActive] = useState(baseRoute);
+
   const navigate = useNavigate()
   const { id } = useParams()
 
@@ -35,13 +39,13 @@ export function Navbar() {
   const links = data.map((item) => (
     <a
       className={classes.link}
-      data-active={item.label === active || undefined}
+      data-active={item.link === active || undefined}
       href={item.link}
       key={item.label}
       onClick={(event) => {
         event.preventDefault();
         navigate(`${item?.link}/${id}`)
-        setActive(item.label);
+        setActive(item.link);
       }}
     >
       <item.icon className={classes.linkIcon} stroke={1.5} />
