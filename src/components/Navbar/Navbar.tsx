@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   IconLogout,
   IconSettings,
@@ -36,6 +36,12 @@ export function Navbar() {
     }
   })
 
+  useEffect(() => {
+    if(location) {
+      setActive(location.pathname.split("/")[1])
+    }
+  }, [location])
+
   const links = data.map((item) => (
     <a
       className={classes.link}
@@ -44,7 +50,12 @@ export function Navbar() {
       key={item.label}
       onClick={(event) => {
         event.preventDefault();
-        navigate(`${item?.link}/${id}`)
+        if(item?.link === "list") {
+          navigate(`${item?.link}/${id}?page=1`)
+        } else {
+          navigate(`${item?.link}/${id}`)
+        }
+
         setActive(item.link);
       }}
     >
