@@ -204,16 +204,16 @@ export const BoardPage = () => {
     columnsDispatch({type: "LIST", boardData: newState})
 
     if (result?.source?.droppableId && result?.destination?.droppableId) {
+      let placedAtTop = false
       let targetCardId = ''
       if(result?.destination?.index === 0) {
         if(columns.columns[result.destination.droppableId].items[result?.destination?.index]?._id) {
-          targetCardId = 'FIRST'
-        } else {
-          targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index]?._id
+          placedAtTop = true
         }
+
+        targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index]?._id
       } else {
         targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index-1]?._id
-        console.log("targetCardId", columns.columns[result.destination.droppableId].items[result?.destination.index-1]?.title)
       }
 
       updateCardLocationMutate({ 
@@ -222,7 +222,8 @@ export const BoardPage = () => {
         destinationColumnId: result.destination.droppableId, 
         destinationIndex: result.destination.index, 
         cardId: result.draggableId,
-        targetCardId
+        targetCardId,
+        placedAtTop
       });
     }
   }

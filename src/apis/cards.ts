@@ -23,7 +23,8 @@ export const updateCardLocation = ({
     destinationColumnId, 
     destinationIndex, 
     cardId,
-    targetCardId
+    targetCardId,
+    placedAtTop = false
   }: { 
     boardId?: string; 
     sourceColumnId: string;
@@ -31,8 +32,9 @@ export const updateCardLocation = ({
     destinationIndex: number;
     cardId?: string;
     targetCardId: string;
+    placedAtTop: boolean
   }) => {
-    return PATCH(`/boards/${boardId}/columns/${sourceColumnId}/cards/${cardId}/move/`, { destinationColumnId, destinationIndex, targetCardId });
+    return PATCH(`/boards/${boardId}/columns/${sourceColumnId}/cards/${cardId}/move/`, { destinationColumnId, destinationIndex, targetCardId, placedAtTop });
 }
 
 export const getCardActivities = (query: string) => {
