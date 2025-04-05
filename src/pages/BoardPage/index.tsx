@@ -206,17 +206,14 @@ export const BoardPage = () => {
     if (result?.source?.droppableId && result?.destination?.droppableId) {
       let targetCardId = ''
       if(result?.destination?.index === 0) {
-        if(columns.columns[result.destination.droppableId].items[result?.destination.index]?._id) {
-          targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index]?._id
-        } else {
+        if(columns.columns[result.destination.droppableId].items[result?.destination?.index]?._id) {
           targetCardId = 'FIRST'
+        } else {
+          targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index]?._id
         }
       } else {
-        if(columns.columns[result.destination.droppableId].items[result?.destination.index]?._id === undefined) {
-          targetCardId = "LAST"
-        } else {
-          targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index]?._id
-        }
+        targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index-1]?._id
+        console.log("targetCardId", columns.columns[result.destination.droppableId].items[result?.destination.index-1]?.title)
       }
 
       updateCardLocationMutate({ 

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Table, Pagination, Group, Center, Button, LoadingOverlay, Box, Title } from '@mantine/core';
+import { Table, Pagination, Group, Center, Button, LoadingOverlay, Box, Title, Badge } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { fetchList } from '../../apis';
@@ -13,7 +13,9 @@ interface ListElement {
   _id: string;
   card_key: string;
   title: string;
-  status: string;
+  column_info: {
+    name: string;
+  }
   asignee: string;
   priority?: string;
   due_date?: string;
@@ -77,9 +79,9 @@ export const ListPage = () => {
       </Table.Td> */}
       <Table.Td w={120} maw={120} align="center"><Button fullWidth variant='transparent' size="xs">{element.card_key}</Button></Table.Td>
       <Table.Td w={420} maw={420} style={{overflow: "scroll", textOverflow:"ellipsis", whiteSpace: "nowrap"}}>{element.title}</Table.Td>
-      <Table.Td>{element.status}</Table.Td>
+      <Table.Td w={120} maw={120} align="center"><Badge size="sm" variant="light">{element.column_info.name}</Badge></Table.Td>
+      <Table.Td w={100} maw={100} align="center">{element.priority && <PriorityBadge priority={element?.priority} size="sm" />}</Table.Td>
       <Table.Td>{element.asignee}</Table.Td>
-      <Table.Td align="center">{element.priority && <PriorityBadge priority={element?.priority} size="sm" />}</Table.Td>
       <Table.Td c={CURRENT_DATE >= dayjs(element.due_date) ? "red" : "dark"}>{element?.due_date ? dayjs(element.due_date).format('MMM DD, YYYY') : null}</Table.Td>
       <Table.Td>{element?.date_updated ? dayjs(element.date_updated).format('MMM DD, YYYY') : null}</Table.Td>
       <Table.Td>{element?.date_created ? dayjs(element.date_created).format('MMM DD, YYYY') : null}</Table.Td>
@@ -99,9 +101,9 @@ export const ListPage = () => {
                   {/* <Table.Th /> */}
                   <Table.Th ta="center" c="dark.3">Key</Table.Th>
                   <Table.Th c="dark.3">Title</Table.Th>
-                  <Table.Th c="dark.3">Status</Table.Th>
-                  <Table.Th c="dark.3">Asignee</Table.Th>
+                  <Table.Th ta="center" c="dark.3">Status</Table.Th>
                   <Table.Th ta="center" c="dark.3">Priority</Table.Th>
+                  <Table.Th c="dark.3">Asignee</Table.Th>
                   <Table.Th c="dark.3">Due date</Table.Th>
                   <Table.Th c="dark.3">Date updated</Table.Th>
                   <Table.Th c="dark.3">Date created</Table.Th>
