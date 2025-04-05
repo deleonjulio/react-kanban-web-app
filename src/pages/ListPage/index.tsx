@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Table, Pagination, Group, TextInput, Grid, Button, LoadingOverlay, Box } from '@mantine/core';
+import { Table, Pagination, Group, Center, Button, LoadingOverlay, Box, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { fetchList } from '../../apis';
@@ -9,8 +9,19 @@ import dayjs from 'dayjs';
 
 const CURRENT_DATE = dayjs();
 
+interface ListElement {
+  _id: string;
+  card_key: string;
+  title: string;
+  status: string;
+  asignee: string;
+  priority?: string;
+  due_date?: string;
+  date_updated?: string;
+  date_created?: string;
+}
+
 export const ListPage = () => {
-  // const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const { id: boardId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams()
   
@@ -18,17 +29,10 @@ export const ListPage = () => {
   const page = searchParams.get('page')
   const search = searchParams.get('search')
   const params = { page, priority, search }
-
-  useEffect(() => {
-    if(page === null) {
-      searchParams.set("page", 1)
-      setSearchParams(searchParams);  
-    }
-  }, [])
   
-  const { data: list, isLoading, error: errorFetchList } = useQuery({
+  const { data: list, isLoading } = useQuery({
     queryKey: [boardId, page, priority, search],
-    queryFn: () => fetchList(boardId, params),
+    queryFn: () => boardId ? fetchList(boardId, params) : Promise.reject('Board ID is undefined'),
     enabled: boardId != undefined && page != null,
     retry: false,
     refetchOnWindowFocus: false
@@ -40,14 +44,20 @@ export const ListPage = () => {
   
   // this will maintain the previous page count to avoid the flickering of the pagination when the data is loading
   const previousPageCount = useRef(pageCount) 
-  const handleTableChange = (page: string) => {
-    searchParams.set("page", page)
+  const handleTableChange = (page: number) => {
+    searchParams.set("page", String(page))
     setSearchParams(searchParams);
     previousPageCount.current =  Math.ceil(total / 10);
   }
 
-  
-  const rows = data?.map((element) => (
+  useEffect(() => {
+    if(page === null) {
+      searchParams.set("page", "1")
+      setSearchParams(searchParams);  
+    }
+  }, [])
+
+  const rows = data?.map((element: ListElement) => (
     <Table.Tr
       key={element._id}
       // bg={selectedRows.includes(element.key) ? 'var(--mantine-color-blue-light)' : undefined}
@@ -97,8 +107,9 @@ export const ListPage = () => {
                   <Table.Th c="dark.3">Date created</Table.Th>
                 </Table.Tr>
               </Table.Thead>
-              <Table.Tbody>{rows}</Table.Tbody>
+              {data?.length > 0 && <Table.Tbody>{rows}</Table.Tbody>}
             </Table>
+            {data?.length === 0 && <Center p={80}><Title order={4}>No data found</Title></Center>}
           </Table.ScrollContainer>
         </Box>
         <Pagination color="cyan" value={Number(page)} total={isLoading ? previousPageCount.current : pageCount} disabled={isLoading} onChange={handleTableChange} size="lg"  />
