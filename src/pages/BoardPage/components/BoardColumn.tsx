@@ -7,7 +7,7 @@ import { useColumns, useColumnsDispatch } from "../../../providers/ColumnsProvid
 import { getColumnCardsOlder } from "../../../apis";
 import { useSearchParams, useParams } from "react-router-dom";
 import { ItemList } from "./ItemList";
-import { Text } from "@mantine/core";
+import { Text, LoadingOverlay, Box } from "@mantine/core";
 
 export const BoardColumn = memo(function BoardColumn({
   column, 
@@ -27,7 +27,7 @@ export const BoardColumn = memo(function BoardColumn({
 
   const lastCard = column?.items[column?.items?.length - 1];
 
-  const { data: cards, error: errorGetColumnCards } = useQuery({
+  const { data: cards, error: errorGetColumnCards, isLoading } = useQuery({
     queryKey: [boardId, column._id, priority],
     queryFn: () => getColumnCards({boardId, columnId: column._id, columnFilters}),
     enabled: boardId !== undefined && column._id !== undefined,
@@ -74,16 +74,19 @@ export const BoardColumn = memo(function BoardColumn({
   }, [olderCards])
 
   return (
-      <Draggable draggableId={column?._id} index={index}>
-        {provided => (
-          <div className="column" {...provided.draggableProps} ref={provided.innerRef}>
-            <div {...provided.dragHandleProps} style={{paddingLeft: 10, paddingRight: 10, display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-              <Text fw={"bold"} my={14}>{column.title}</Text>
-              <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(column?._id) } initDeleteColumn={() => initDeleteColumn(column?._id)} />
-            </div>
-          <ItemList column={column} index={index} loadMore={loadMore} />
-        </div>
+    <Box pos="relative">
+      <LoadingOverlay visible={isLoading} zIndex={1000} overlayProps={{ radius: "md", blur: 1 }} />
+        <Draggable isDragDisabled={isLoading} draggableId={column?._id} index={index}>
+          {provided => (
+            <div className="column" {...provided.draggableProps} ref={provided.innerRef}>
+              <div {...provided.dragHandleProps} style={{paddingLeft: 10, paddingRight: 10, display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                <Text fw={"bold"} my={14}>{column.title}</Text>
+                <ColumnHeader name={column.name} initCreateCard={() => initCreateCard(column?._id) } initDeleteColumn={() => initDeleteColumn(column?._id)} />
+              </div>
+            <ItemList column={column} index={index} loadMore={loadMore} />
+          </div>
         )}
-    </Draggable>
+      </Draggable>
+    </Box>
   )
 });

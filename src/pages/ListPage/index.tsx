@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Table, Pagination, Group, TextInput, Grid} from '@mantine/core';
+import { useEffect, useRef } from 'react';
+import { Table, Pagination, Group, TextInput, Grid, Button, LoadingOverlay, Box } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { fetchList } from '../../apis';
@@ -37,11 +37,15 @@ export const ListPage = () => {
   const data = list?.data?.data
   const total = list?.data?.total
   const pageCount = Math.ceil(total / 10);
-
+  
+  // this will maintain the previous page count to avoid the flickering of the pagination when the data is loading
+  const previousPageCount = useRef(pageCount) 
   const handleTableChange = (page: string) => {
     searchParams.set("page", page)
     setSearchParams(searchParams);
+    previousPageCount.current =  Math.ceil(total / 10);
   }
+
   
   const rows = data?.map((element) => (
     <Table.Tr
@@ -61,11 +65,11 @@ export const ListPage = () => {
           }
         />
       </Table.Td> */}
-      <Table.Td>{element.card_key}</Table.Td>
-      <Table.Td style={{maxWidth: 300, overflow: "scroll", textOverflow:"ellipsis", whiteSpace: "nowrap"}}>{element.title}</Table.Td>
+      <Table.Td w={120} maw={120} align="center"><Button fullWidth variant='transparent' size="xs">{element.card_key}</Button></Table.Td>
+      <Table.Td w={420} maw={420} style={{overflow: "scroll", textOverflow:"ellipsis", whiteSpace: "nowrap"}}>{element.title}</Table.Td>
       <Table.Td>{element.status}</Table.Td>
       <Table.Td>{element.asignee}</Table.Td>
-      <Table.Td align="center">{element.priority && <PriorityBadge priority={element?.priority} />}</Table.Td>
+      <Table.Td align="center">{element.priority && <PriorityBadge priority={element?.priority} size="sm" />}</Table.Td>
       <Table.Td c={CURRENT_DATE >= dayjs(element.due_date) ? "red" : "dark"}>{element?.due_date ? dayjs(element.due_date).format('MMM DD, YYYY') : null}</Table.Td>
       <Table.Td>{element?.date_updated ? dayjs(element.date_updated).format('MMM DD, YYYY') : null}</Table.Td>
       <Table.Td>{element?.date_created ? dayjs(element.date_created).format('MMM DD, YYYY') : null}</Table.Td>
@@ -74,27 +78,30 @@ export const ListPage = () => {
 
   return (
     <div>
-        <ListFilter />
-        <Group style={{margin: 4}}>
-        <Table.ScrollContainer minWidth={1400} mah={500} mih={50} type="native" bg="white" style={{ borderRadius: 8, border: "1px solid #ddd"}}>
-          <Table withColumnBorders stickyHeader horizontalSpacing="xs" verticalSpacing="xs">
-            <Table.Thead>
-              <Table.Tr>
-                {/* <Table.Th /> */}
-                <Table.Th c="dark.3">Key</Table.Th>
-                <Table.Th c="dark.3">Title</Table.Th>
-                <Table.Th c="dark.3">Status</Table.Th>
-                <Table.Th c="dark.3">Asignee</Table.Th>
-                <Table.Th ta="center" c="dark.3">Priority</Table.Th>
-                <Table.Th c="dark.3">Due date</Table.Th>
-                <Table.Th c="dark.3">Date updated</Table.Th>
-                <Table.Th c="dark.3">Date created</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>{rows}</Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-        {data?.length > 0 && <Pagination color="cyan" value={Number(page)} total={pageCount} disabled={isLoading} onChange={handleTableChange} size="lg"  />}
+      <ListFilter />
+      <Group style={{margin: 4}}>
+        <Box pos="relative">
+        <LoadingOverlay visible={isLoading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+          <Table.ScrollContainer minWidth={1400} mah={555} mih={isLoading ? 555 : 50} type="native" bg="white" style={{ borderRadius: 8, border: "1px solid #ddd", scrollbarWidth: "thin"}}>
+            <Table withColumnBorders stickyHeader horizontalSpacing="xs" verticalSpacing="xs">
+              <Table.Thead>
+                <Table.Tr>
+                  {/* <Table.Th /> */}
+                  <Table.Th ta="center" c="dark.3">Key</Table.Th>
+                  <Table.Th c="dark.3">Title</Table.Th>
+                  <Table.Th c="dark.3">Status</Table.Th>
+                  <Table.Th c="dark.3">Asignee</Table.Th>
+                  <Table.Th ta="center" c="dark.3">Priority</Table.Th>
+                  <Table.Th c="dark.3">Due date</Table.Th>
+                  <Table.Th c="dark.3">Date updated</Table.Th>
+                  <Table.Th c="dark.3">Date created</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>{rows}</Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+        </Box>
+        <Pagination color="cyan" value={Number(page)} total={isLoading ? previousPageCount.current : pageCount} disabled={isLoading} onChange={handleTableChange} size="lg"  />
       </Group>
     </div>
   );

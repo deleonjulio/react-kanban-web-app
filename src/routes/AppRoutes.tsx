@@ -2,7 +2,7 @@ import { createBrowserRouter, Outlet } from 'react-router-dom'
 import {  Login, Home, OverviewPage, BoardPage, ListPage, MembersPage } from '../pages'
 import { GET } from '../utils/request';
 import { Navbar } from '../components';
-import { AppShell, Burger, Group, Skeleton } from '@mantine/core';
+import { AppShell, Burger, Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 // import { MantineLogo } from '@mantinex/mantine-logo';
 
@@ -70,8 +70,9 @@ const routes = [{
     children: [
             { path: '/login',  element: <Login /> },
             { path: '/boards',  element: <Home />, loader },
+            { path: '/',  element: <Home />, loader },
             {
-              path: '/', 
+              path: '', 
               element: <Main />,
               children: [
                 { path: 'overview/:id',  element: <OverviewPage /> },

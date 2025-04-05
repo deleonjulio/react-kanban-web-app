@@ -28,7 +28,7 @@
   doing this ensures that dropping into an empty list will be in the correct visual position */
   padding-left: var(--grid);
   padding-right: var(--grid);
-  scrollbar-color: dark;
+  scrollbar-width: thin;
 }
 
 #create-column-container {
