@@ -123,7 +123,7 @@ const Row = memo(function Row(props) {
   );
 }, areEqual);
 
-export const ItemList = memo(function ItemList({ column, index, loadMore }) {
+export const ItemList = memo(function ItemList({ column, index, loadMore}) {
     // There is an issue I have noticed with react-window that when reordered
     // react-window sets the scroll back to 0 but does not update the UI
     // I should raise an issue for this.
@@ -199,11 +199,13 @@ export const ItemList = memo(function ItemList({ column, index, loadMore }) {
                 if (!listRef.current) {
                   return;
                 }
-                
                 // BUG: totalHeight is off by few pixels
                 const MARGIN_ERROR = 1
                 if (hasMountedRef.current.props.height + event.scrollOffset >= (totalHeight - MARGIN_ERROR)) {
-                  loadMore()
+                  // BUG: when user move an item from one column to another and place it at the end, load more is called many times.
+                  if(snapshot.draggingOverWith === snapshot.draggingFromThisWith && !snapshot.isDraggingOver) {
+                    loadMore()
+                  }
                 }
               }}
             >
