@@ -99,6 +99,14 @@ export const CardModal = ({
     }
 
     const initUpdateCard = () => {
+        if(editableSelectedCard?.title.length === 0) {
+            return;
+        }
+
+        if(editableSelectedCard?.title.length > 180) {
+            return
+        }
+
         const payload: UpdateCardPayload = {
             _id: editableSelectedCard?._id,
             column_id: editableSelectedCard?.column_id,
@@ -238,7 +246,7 @@ export const CardModal = ({
                     ) : (
                         <React.Fragment>
                             <Grid>
-                                <Grid.Col span={{ xs: 12, sm:8, md: 9, lg: 9 }}><Title order={4}> {selectedCard?.title}</Title></Grid.Col>
+                                <Grid.Col span={{ xs: 12, sm:8, md: 9, lg: 9 }}><Title order={4} style={{wordBreak: "break-word"}}> {selectedCard?.title}</Title></Grid.Col>
                                 <Grid.Col span={{ xs: 12, sm:4, md: 3, lg: 3 }}>
                                     <Flex justify="flex-end" align="center" gap="md" h="100%">
                                         <Button color="black" leftSection={<IconEdit size={14} />} variant="white" onClick={() => setEditMode(true)}>

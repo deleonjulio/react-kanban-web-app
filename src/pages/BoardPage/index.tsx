@@ -298,7 +298,14 @@ export const BoardPage = () => {
         title: '',
     },
     validate: {
-        title: (value) => (value.length < 1 ? 'Required' : null),
+      title: (value) => {
+        if(value.length < 1 ) {
+          return 'Required'
+        } else if (value.length > 180) {
+          return 'Title should not exceed 180 characters'
+        }
+        return null
+      },
     }
   });
 

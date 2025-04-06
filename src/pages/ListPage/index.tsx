@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Table, Pagination, Group, Center, Button, LoadingOverlay, Box, Title, Badge } from '@mantine/core';
+import { Table, Pagination, Group, Center, Button, LoadingOverlay, Box, Title, Badge, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { fetchList } from '../../apis';
@@ -77,14 +77,28 @@ export const ListPage = () => {
           }
         />
       </Table.Td> */}
-      <Table.Td w={120} maw={120} align="center"><Button fullWidth variant='transparent' size="xs">{element.card_key}</Button></Table.Td>
-      <Table.Td w={420} maw={420} style={{overflow: "scroll", textOverflow:"ellipsis", whiteSpace: "nowrap"}}>{element.title}</Table.Td>
-      <Table.Td w={120} maw={120} align="center"><Badge size="sm" variant="light">{element.column_info.name}</Badge></Table.Td>
-      <Table.Td w={100} maw={100} align="center">{element.priority && <PriorityBadge priority={element?.priority} size="sm" />}</Table.Td>
+      <Table.Td w={120} maw={120} align="center">
+        <Button fullWidth variant='transparent' size="xs">{element.card_key}</Button>
+      </Table.Td>
+      <Table.Td w={420} maw={420}>
+        <Text size="xs" style={{overflow: "hidden", textOverflow:"ellipsis", whiteSpace: "nowrap"}}>{element.title}</Text>
+      </Table.Td>
+      <Table.Td w={120} maw={120} align="center">
+        <Badge size="sm" variant="light">{element.column_info.name}</Badge>
+      </Table.Td>
+      <Table.Td w={100} maw={100} align="center">
+        {element.priority && <PriorityBadge priority={element?.priority} size="sm" />}
+      </Table.Td>
       <Table.Td>{element.asignee}</Table.Td>
-      <Table.Td c={CURRENT_DATE >= dayjs(element.due_date) ? "red" : "dark"}>{element?.due_date ? dayjs(element.due_date).format('MMM DD, YYYY') : null}</Table.Td>
-      <Table.Td>{element?.date_updated ? dayjs(element.date_updated).format('MMM DD, YYYY') : null}</Table.Td>
-      <Table.Td>{element?.date_created ? dayjs(element.date_created).format('MMM DD, YYYY') : null}</Table.Td>
+      <Table.Td c={CURRENT_DATE >= dayjs(element.due_date) ? "red" : "dark"}>
+        {element?.due_date ? <Text size="xs">{dayjs(element.due_date).format('MMM DD, YYYY')}</Text> : null}
+      </Table.Td>
+      <Table.Td>
+        {element?.date_updated ? <Text size="xs">{dayjs(element.date_updated).format('MMM DD, YYYY')}</Text> : null}
+      </Table.Td>
+      <Table.Td>
+        {element?.date_created ? <Text size="xs">{dayjs(element.date_created).format('MMM DD, YYYY')}</Text>: null}
+      </Table.Td>
     </Table.Tr>
   ));
 

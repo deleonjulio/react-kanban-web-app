@@ -9,15 +9,32 @@ import { useSearchParams } from "react-router-dom";
 const CURRENT_DATE = dayjs();
 
 function calculateHeight(text, width = 300, fontSize = 13) {
-  const totalLength = text.length;
-  if (totalLength === 0) return 0; // No text, no height
+  if (text.length === 0) return 0;
 
-  // Since all characters are uppercase, use a fixed width per character
-  const avgCharWidth = 0.65 * fontSize;
+  const lineHeight = fontSize * 1.55;
 
-  const lineHeight = fontSize * 1.5;
-  const charsPerLine = Math.floor(width / avgCharWidth);
-  const totalLines = Math.ceil(totalLength / charsPerLine);
+  // Count uppercase, lowercase, and other characters
+  let upperCount = 0;
+  let lowerCount = 0;
+  for (const char of text) {
+    if (char >= 'A' && char <= 'Z') upperCount++;
+    else if (char >= 'a' && char <= 'z') lowerCount++;
+  }
+  const otherCount = text.length - upperCount - lowerCount;
+
+  // Character width assumptions
+  const upperWidth = 0.65 * fontSize;
+  const lowerWidth = 0.52 * fontSize;
+  const otherWidth = 0.5 * fontSize;
+
+  // Total width of the text in pixels
+  const totalPixelWidth =
+    upperCount * upperWidth +
+    lowerCount * lowerWidth +
+    otherCount * otherWidth;
+
+  // Estimate number of lines
+  const totalLines = Math.ceil(totalPixelWidth / width);
 
   return totalLines * lineHeight;
 }
@@ -44,6 +61,7 @@ function getStyle({ draggableStyle, virtualStyle, isDragging }) {
       ? draggableStyle.width
       : `calc(${combined.width} - ${grid * 2}px)`,
     marginBottom: grid,
+    wordWrap: "break-word"
   };
 
   return result;
@@ -59,11 +77,11 @@ export const Item = ({ provided, item, style, isDragging }) => {
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       ref={provided.innerRef}
-      style={getStyle({
+      style={{...getStyle({
         draggableStyle: provided.draggableProps.style,
         virtualStyle: style,
         isDragging
-      })}
+      })}}
       className={`item ${isDragging ? "is-dragging" : ""}`}
       onClick={() => {
         searchParams.set("selectedCard", item.card_key);
@@ -181,8 +199,10 @@ export const ItemList = memo(function ItemList({ column, index, loadMore }) {
                 if (!listRef.current) {
                   return;
                 }
-  
-                if (hasMountedRef.current.props.height + event.scrollOffset >= totalHeight) {
+                
+                // BUG: totalHeight is off by few pixels
+                const MARGIN_ERROR = 1
+                if (hasMountedRef.current.props.height + event.scrollOffset >= (totalHeight - MARGIN_ERROR)) {
                   loadMore()
                 }
               }}
