@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { Table, Pagination, Group, Center, Button, LoadingOverlay, Box, Title, Badge, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { fetchList } from '../../apis';
@@ -84,12 +83,14 @@ export const ListPage = () => {
         <Text size="xs" style={{overflow: "hidden", textOverflow:"ellipsis", whiteSpace: "nowrap"}}>{element.title}</Text>
       </Table.Td>
       <Table.Td w={120} maw={120} align="center">
-        <Badge size="sm" variant="light">{element.column_info.name}</Badge>
+        <Badge size="sm" variant="light">{element?.column_info?.name}</Badge>
       </Table.Td>
       <Table.Td w={100} maw={100} align="center">
         {element.priority && <PriorityBadge priority={element?.priority} size="sm" />}
       </Table.Td>
-      <Table.Td>{element.asignee}</Table.Td>
+      <Table.Td align="center">
+        <Avatar size="sm" name="JULIO DE LEON" color="initials" />   
+      </Table.Td>
       <Table.Td c={CURRENT_DATE >= dayjs(element.due_date) ? "red" : "dark"}>
         {element?.due_date ? <Text size="xs">{dayjs(element.due_date).format('MMM DD, YYYY')}</Text> : null}
       </Table.Td>
@@ -108,7 +109,7 @@ export const ListPage = () => {
       <Group style={{margin: 4}}>
         <Box pos="relative">
         <LoadingOverlay visible={isLoading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
-          <Table.ScrollContainer minWidth={1400} mah={555} mih={isLoading ? 555 : 50} type="native" bg="white" style={{ borderRadius: 8, border: "1px solid #ddd", scrollbarWidth: "thin"}}>
+          <Table.ScrollContainer minWidth={1200} mah={560} mih={isLoading ? 555 : 50} type="native" bg="white" style={{ borderRadius: 8, border: "1px solid #ddd", scrollbarWidth: "thin"}}>
             <Table withColumnBorders stickyHeader horizontalSpacing="xs" verticalSpacing="xs">
               <Table.Thead>
                 <Table.Tr>
@@ -117,7 +118,7 @@ export const ListPage = () => {
                   <Table.Th c="dark.3">Title</Table.Th>
                   <Table.Th ta="center" c="dark.3">Status</Table.Th>
                   <Table.Th ta="center" c="dark.3">Priority</Table.Th>
-                  <Table.Th c="dark.3">Asignee</Table.Th>
+                  <Table.Th ta="center" c="dark.3">Asignee</Table.Th>
                   <Table.Th c="dark.3">Due date</Table.Th>
                   <Table.Th c="dark.3">Date updated</Table.Th>
                   <Table.Th c="dark.3">Date created</Table.Th>
@@ -127,8 +128,8 @@ export const ListPage = () => {
             </Table>
             {data?.length === 0 && <Center p={80}><Title order={4}>No data found</Title></Center>}
           </Table.ScrollContainer>
+          <Pagination pt="sm" color="cyan" value={Number(page)} total={isLoading ? previousPageCount.current : pageCount} disabled={isLoading} onChange={handleTableChange} size="lg"  />
         </Box>
-        <Pagination color="cyan" value={Number(page)} total={isLoading ? previousPageCount.current : pageCount} disabled={isLoading} onChange={handleTableChange} size="lg"  />
       </Group>
     </div>
   );

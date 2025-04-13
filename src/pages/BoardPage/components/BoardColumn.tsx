@@ -25,17 +25,18 @@ export const BoardColumn = memo(function BoardColumn({
   const columns = useColumns()
   const columnsDispatch = useColumnsDispatch()
 
-  const lastCard = column?.items[column?.items?.length - 1];
+  const lastCard = column?.items ? column.items[column?.items?.length - 1] : null;
 
-  const { data: cards, error: errorGetColumnCards, isLoading } = useQuery({
+  const { data: cards, isFetching: getColumnCardsIsFetching } = useQuery({
     queryKey: [boardId, column._id, priority],
     queryFn: () => getColumnCards({boardId, columnId: column._id, columnFilters}),
     enabled: boardId !== undefined && column._id !== undefined,
     retry: false,
     refetchOnWindowFocus: false,
+    staleTime: 0
   })
 
-  const { data: olderCards, refetch, isFetching: getColumnCardsOlderIsPending } = useQuery({
+  const { data: olderCards, refetch } = useQuery({
     queryKey: ["columnCardsOlder", boardId, column?._id, priority],
     queryFn: () => getColumnCardsOlder({boardId, columnId: column._id, columnFilters, cardId: lastCard._id}),
     enabled: false, // Disabled by default, only fetch when triggered
@@ -47,7 +48,7 @@ export const BoardColumn = memo(function BoardColumn({
     if(cards?.data) {
       const cardsData = cards.data?.data;
       columnsDispatch({
-        type: "INITIAL_LOAD", column: {
+        type: "INITIAL_LOAD", columns: {
           [column._id]: {
               ...columns?.columns[column?._id],
               items: cardsData
@@ -75,8 +76,8 @@ export const BoardColumn = memo(function BoardColumn({
 
   return (
     <Box pos="relative">
-      <LoadingOverlay visible={isLoading} zIndex={1000} overlayProps={{ radius: "md", blur: 1 }} />
-        <Draggable isDragDisabled={isLoading} draggableId={column?._id} index={index}>
+      <LoadingOverlay visible={getColumnCardsIsFetching} zIndex={1000} overlayProps={{ radius: "md", blur: 1 }} />
+        <Draggable isDragDisabled={getColumnCardsIsFetching} draggableId={column?._id} index={index}>
           {provided => (
             <div className="column" {...provided.draggableProps} ref={provided.innerRef}>
               <div {...provided.dragHandleProps} style={{paddingLeft: 10, paddingRight: 10, display: "flex", justifyContent: "space-between", alignItems: "center"}}>

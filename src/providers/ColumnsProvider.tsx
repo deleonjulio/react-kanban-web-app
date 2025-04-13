@@ -21,19 +21,28 @@ export type Card = {
 };
 
 type Column = {
-  name: string;
-  items: Card[];
+  [key: string]: {
+    _id: string;
+    title: string;
+    items: Card[];
+  }
 };
 
 // type BoardColumns = Record<string, Column>;
 export type BoardColumns = { 
-    [key: string]: Column
+  columns: Column
+  columnOrder: string[];
 }
 
 type ColumnsAction =
   | { type: 'LIST'; boardData: BoardColumns; }
+  | { type: 'INITIAL_LOAD'; columns: Column; }
+  | { type: 'RESET'; }
 
-const initialColumns: BoardColumns = {};
+const initialColumns: BoardColumns = {
+  columnOrder: [],
+  columns: {}
+};
 
 const ColumnsContext = createContext<BoardColumns | undefined>(undefined);
 const ColumnsDispatchContext = createContext<React.Dispatch<ColumnsAction> | undefined>(undefined);
@@ -81,10 +90,10 @@ const columnsReducer = (state: BoardColumns, action: ColumnsAction): BoardColumn
         ...state,
         columns: {
           ...state.columns,
-          ...action.column
+          ...action.columns
         }
       };
     case 'RESET':
-      return { };
+      return initialColumns;
    }
 };

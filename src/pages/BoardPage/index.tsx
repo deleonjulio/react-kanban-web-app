@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { DragDropContext, Droppable } from "@hello-pangea/dnd";
+import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
 import "./style.css";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getBoard, updateColumnOrder, createCard, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn, getColumnCardsOlder } from "../../apis";
+import { getBoard, updateColumnOrder, createCard, getCard, updateCardLocation, deleteCard, updateCard, createColumn, deleteColumn } from "../../apis";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from '@mantine/form';
 import { NewCardModal, CardModal, DeleteCardModal, BoardNotFound, DeleteColumnModal, CreateColumn, BoardFilter, BoardColumn } from "./components";
@@ -14,11 +14,24 @@ import { AxiosError } from "axios";
 import { useColumns, useColumnsDispatch } from "../../providers/ColumnsProvider";
 import { BoardColumns, Card } from "../../providers/ColumnsProvider";
 
-function reorderList(list, startIndex, endIndex) {
-  const result = Array.from(list);
+type TransformData = {
+  [key: string]: {
+    name: string
+    items: Card[]
+  }
+}
+
+function reorderListColumn(list: string[], startIndex: number, endIndex: number) {
+  const result: string[] = Array.from(list)
   const [removed] = result.splice(startIndex, 1);
   result.splice(endIndex, 0, removed);
+  return result;
+}
 
+function reorderListCard(list: Card[], startIndex: number, endIndex: number) {
+  const result: Card[] = Array.from(list)
+  const [removed] = result.splice(startIndex, 1);
+  result.splice(endIndex, 0, removed);
   return result;
 }
 
@@ -54,7 +67,11 @@ export const BoardPage = () => {
   useEffect(() => {
     if(boardInfo?.data) {
       const { data: initialBoardData } = boardInfo;
-      let boardData: BoardColumns = {};
+      
+      let boardData: {[key: string] : {
+        name: string;
+        items: Card[];
+      }} = {};
 
       initialBoardData?.columns?.forEach((column: { _id: string; name: string; }) => {
         boardData[column._id] = {
@@ -63,7 +80,7 @@ export const BoardPage = () => {
         }
       })
 
-      const transformData = (data) => {
+      const transformData = (data: TransformData) => {
         const columns = Object.fromEntries(
           Object.entries(data).map(([key, value]) => [
             key,
@@ -80,11 +97,8 @@ export const BoardPage = () => {
         return { columns, columnOrder };
       };
 
-      boardData = transformData(boardData)
-      columnsDispatch({type: "LIST", boardData})
-
-      // setState(boardData)
-
+      const transformedBoardData: BoardColumns = transformData(boardData)
+      columnsDispatch({type: "LIST", boardData: transformedBoardData})
     }
   }, [boardInfo])
 
@@ -95,7 +109,7 @@ export const BoardPage = () => {
     }
   });
 
-  const handleUpdateColumnOrder = (reorderedColumns: BoardColumns) => {
+  const handleUpdateColumnOrder = (reorderedColumns: string[]) => {
     updateColumnOrderMutate({ boardId, columnOrder: reorderedColumns });
   }
 
@@ -107,7 +121,8 @@ export const BoardPage = () => {
     }
   });
 
-  function onDragEnd(result) {
+  function onDragEnd(result: DropResult) {
+    console.log(result)
     if (!result.destination) {
       return;
     }
@@ -118,7 +133,7 @@ export const BoardPage = () => {
       // if the list is scrolled it looks like there is some strangeness going on
       // with react-window. It looks to be scrolling back to scroll: 0
       // I should log an issue with the project
-      const columnOrder = reorderList(
+      const columnOrder = reorderListColumn(
         columns.columnOrder,
         result.source.index,
         result.destination.index
@@ -138,7 +153,8 @@ export const BoardPage = () => {
       if (result.source.index === result.destination.index) return; 
 
       const column = columns.columns[result.source.droppableId];
-      const items = reorderList(
+
+      const items = reorderListCard(
         column.items,
         result.source.index,
         result.destination.index
@@ -158,7 +174,7 @@ export const BoardPage = () => {
       columnsDispatch({type: "LIST", boardData: newState})
 
       if (result?.source?.droppableId && result?.destination?.droppableId) {
-        const targetCardId = columns.columns[result.source.droppableId].items[result?.destination.index]?._id
+        const targetCardId = columns.columns[result.source.droppableId].items[result?.destination.index]?._id || ''
 
         updateCardLocationMutate({ 
           boardId, 
@@ -166,6 +182,7 @@ export const BoardPage = () => {
           destinationColumnId: result.destination.droppableId, 
           destinationIndex: result.destination.index, 
           cardId: result.draggableId,
+          placedAtTop: false,
           targetCardId
         });
       }
@@ -211,9 +228,9 @@ export const BoardPage = () => {
           placedAtTop = true
         }
 
-        targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index]?._id
+        targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index]?._id || ''
       } else {
-        targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index-1]?._id
+        targetCardId = columns.columns[result.destination.droppableId].items[result?.destination.index-1]?._id || ''
       }
 
       updateCardLocationMutate({ 
@@ -435,7 +452,7 @@ export const BoardPage = () => {
       const updatedCard = variable.payload;
 
       if(updatedCard.column_id) {
-        let updatedColumns = {
+        let updatedColumns: BoardColumns = {
           ...columns,
           columns: {
             ...columns.columns,
@@ -449,7 +466,7 @@ export const BoardPage = () => {
                     content: updatedCard.content,
                     formatted_content: updatedCard.formatted_content,
                     priority: updatedCard.priority,
-                    due_date: updatedCard.due_date
+                    due_date: updatedCard.due_date ? updatedCard.due_date.toString() : null
                   }
                 }
                 return {...card}
@@ -474,9 +491,7 @@ export const BoardPage = () => {
   });
 
   useEffect(() => {
-    return () => {
-      columnsDispatch({type: "RESET"})
-    }
+    return () => columnsDispatch({type: "RESET"})
   }, [])
 
   if(errorGetBoard) {

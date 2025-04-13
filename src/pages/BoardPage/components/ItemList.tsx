@@ -92,7 +92,7 @@ export const Item = ({ provided, item, style, isDragging }) => {
           <Text fw={900} size="xs" c="gray.7">{item?.card_key}</Text>
           <div style={{display:"flex", justifyContent:"flex-end", alignItems: "center", gap: 4}}>    
             {item?.priority && <PriorityBadge priority={item?.priority} size="xs" />}
-            <Avatar size="sm" name="JULIO" color="initials" />   
+            <Avatar size="sm" name="JULIO DE LEON" color="initials" />   
           </div>
       </div>
       <div style={{display:"flex", alignItems: "center"}}>       
@@ -132,7 +132,7 @@ export const ItemList = memo(function ItemList({ column, index, loadMore}) {
     const listRef = useRef();
     const hasMountedRef = useRef();
   
-    const rowHeights = column.items.map((item) => {
+    const rowHeights = column?.items?.map((item) => {
       let height = 70
       height += calculateHeight(item?.title)
   
@@ -144,12 +144,12 @@ export const ItemList = memo(function ItemList({ column, index, loadMore}) {
     });
   
     const getItemSize = index => {
-      return rowHeights[index];
+      return rowHeights?.[index];
     }
   
     let totalHeight = 0
   
-    rowHeights.forEach(i => {
+    rowHeights?.forEach(i => {
       totalHeight += i
     })
 
@@ -176,8 +176,8 @@ export const ItemList = memo(function ItemList({ column, index, loadMore}) {
           // Usually the DroppableProvided.placeholder does this, but that won't
           // work in a virtual list
           const itemCount = snapshot.isUsingPlaceholder
-            ? column.items.length + 1
-            : column.items.length;
+            ? column?.items?.length + 1
+            : column?.items?.length;
   
           return (
             <VariableSizeList 

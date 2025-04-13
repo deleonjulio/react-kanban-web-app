@@ -46,9 +46,13 @@ export function Navbar() {
     <a
       className={classes.link}
       data-active={item.link === active || undefined}
-      href={item.link}
+      href={`/${item.link}/${id}`}
       key={item.label}
       onClick={(event) => {
+        if(item.link === active) {
+          return event.preventDefault();
+        }
+
         event.preventDefault();
         if(item?.link === "list") {
           navigate(`${item?.link}/${id}?page=1`)
