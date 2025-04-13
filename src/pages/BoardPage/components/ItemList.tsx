@@ -5,6 +5,7 @@ import { Paper, Text, Avatar } from "@mantine/core";
 import { PriorityBadge } from "./PriorityBadge";
 import dayjs from "dayjs";
 import { useSearchParams } from "react-router-dom";
+import { Column } from "../../../types";
 
 const CURRENT_DATE = dayjs();
 
@@ -123,7 +124,7 @@ const Row = memo(function Row(props) {
   );
 }, areEqual);
 
-export const ItemList = memo(function ItemList({ column, index, loadMore}) {
+export const ItemList = memo(function ItemList({ column, index, loadMore}: { column: Column; index: number; loadMore: () => void }) {
     // There is an issue I have noticed with react-window that when reordered
     // react-window sets the scroll back to 0 but does not update the UI
     // I should raise an issue for this.
@@ -143,7 +144,7 @@ export const ItemList = memo(function ItemList({ column, index, loadMore}) {
       return height
     });
   
-    const getItemSize = index => {
+    const getItemSize = (index: number) => {
       return rowHeights?.[index];
     }
   

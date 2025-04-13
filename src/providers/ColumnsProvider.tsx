@@ -20,7 +20,7 @@ export type Card = {
   created_by?: string;
 };
 
-type Column = {
+export type Column = {
   [key: string]: {
     _id: string;
     title: string;

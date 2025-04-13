@@ -3,7 +3,7 @@ import { Draggable } from "@hello-pangea/dnd";
 import { ColumnHeader } from "./ColumnHeader";
 import { getColumnCards } from "../../../apis";
 import { useQuery } from "@tanstack/react-query";
-import { useColumns, useColumnsDispatch } from "../../../providers/ColumnsProvider";
+import { useColumns, useColumnsDispatch, Column } from "../../../providers/ColumnsProvider";
 import { getColumnCardsOlder } from "../../../apis";
 import { useSearchParams, useParams } from "react-router-dom";
 import { ItemList } from "./ItemList";
@@ -14,7 +14,12 @@ export const BoardColumn = memo(function BoardColumn({
   index, 
   initCreateCard, 
   initDeleteColumn 
-}: any) {
+}: {
+  column: Column;
+  index: number;
+  initCreateCard: (columnId: string) => void;
+  initDeleteColumn: (columnId: string) => void;
+}) {
   const [searchParams] = useSearchParams();
 
   const priority = searchParams.get('priority')
@@ -25,7 +30,7 @@ export const BoardColumn = memo(function BoardColumn({
   const columns = useColumns()
   const columnsDispatch = useColumnsDispatch()
 
-  const lastCard = column?.items ? column.items[column?.items?.length - 1] : null;
+  const lastCard = column?.items ? column?.items[column?.items?.length - 1] : null;
 
   const { data: cards, isFetching: getColumnCardsIsFetching } = useQuery({
     queryKey: [boardId, column._id, priority],

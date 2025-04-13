@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Table, Pagination, Group, Center, Button, LoadingOverlay, Box, Title, Badge, Text, Avatar } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { fetchList } from '../../apis';
