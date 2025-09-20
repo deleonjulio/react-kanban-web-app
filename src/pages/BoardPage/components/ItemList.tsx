@@ -9,8 +9,8 @@ import { Column } from "../../../types";
 
 const CURRENT_DATE = dayjs();
 
-function calculateHeight(text, width = 300, fontSize = 13) {
-  if (text.length === 0) return 0;
+function calculateHeight(text: string, width = 300, fontSize = 13) {
+  if (text?.length === 0) return 0;
 
   const lineHeight = fontSize * 1.55;
 
